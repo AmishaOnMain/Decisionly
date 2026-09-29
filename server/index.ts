@@ -13,6 +13,7 @@ import personalContextRoutes from './routes/personalContext.js';
 import decisionsRoutes from './routes/decisions.js';
 import exportRoutes from './routes/export.js';
 import accountRoutes from './routes/account.js';
+import transcribeRoutes from './routes/transcribe.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,6 +71,7 @@ app.use('/api/personal-context', personalContextRoutes);
 app.use('/api/decisions', decisionsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/account', accountRoutes);
+app.use('/api/transcribe', transcribeRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
