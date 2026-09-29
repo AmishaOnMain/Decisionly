@@ -68,5 +68,11 @@
   },
   "optionalDependencies": {
     "@esbuild/linux-x64": "^0.25.0"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
+  "allowScripts": {
+    "esbuild": true
   }
 }
