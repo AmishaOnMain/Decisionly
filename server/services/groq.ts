@@ -175,7 +175,19 @@ ${JSON.stringify(payload, null, 2)}`,
                 : typeof alt.goalAlignment === 'string' && alt.goalAlignment.trim()
                 ? [alt.goalAlignment]
                 : [],
+              scoreContext: typeof alt.scoreContext === 'string' ? alt.scoreContext : '',
             }));
+          }
+
+          if (Array.isArray(parsed.risks)) {
+            parsed.risks = parsed.risks.map((r: any) => ({
+              description: typeof r?.description === 'string' ? r.description : (typeof r === 'string' ? r : 'Potential risk'),
+              appliesTo: Array.isArray(r?.appliesTo) ? r.appliesTo : (typeof r?.appliesTo === 'string' ? [r.appliesTo] : []),
+              likelihood: ['low', 'medium', 'high', 'unknown'].includes(r?.likelihood) ? r.likelihood : 'unknown',
+              basis: typeof r?.basis === 'string' ? r.basis : 'General assessment',
+            }));
+          } else {
+            parsed.risks = [];
           }
 
           const normalizeArray = (val: any) =>

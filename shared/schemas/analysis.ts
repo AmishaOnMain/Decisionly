@@ -1,49 +1,65 @@
 import { z } from 'zod';
 
+const flexibleString = z.union([z.string(), z.record(z.any())]).transform((val) => {
+  if (typeof val === 'string') return val;
+  if (val && typeof val === 'object') {
+    return (
+      (val as any).description ||
+      (val as any).assumption ||
+      (val as any).text ||
+      (val as any).point ||
+      (val as any).title ||
+      (val as any).question ||
+      JSON.stringify(val)
+    );
+  }
+  return String(val);
+});
+
 export const AIRiskItemSchema = z.object({
-  description: z.string(),
-  appliesTo: z.array(z.string()),
-  likelihood: z.enum(['low', 'medium', 'high', 'unknown']),
-  basis: z.string(),
+  description: flexibleString.default('Potential risk'),
+  appliesTo: z.array(flexibleString).default([]),
+  likelihood: z.enum(['low', 'medium', 'high', 'unknown']).default('unknown'),
+  basis: flexibleString.default('General assessment'),
 });
 
 export const AIAlternativeInsightSchema = z.object({
   alternativeId: z.string(),
-  advantages: z.array(z.string()),
-  drawbacks: z.array(z.string()),
-  goalAlignment: z.array(z.string()),
-  scoreContext: z.string(),
+  advantages: z.array(flexibleString).default([]),
+  drawbacks: z.array(flexibleString).default([]),
+  goalAlignment: z.array(flexibleString).default([]),
+  scoreContext: z.string().default(''),
 });
 
 export const AIFinalVerdictSchema = z.object({
   recommendedAlternativeId: z.string(),
-  verdictTitle: z.string(),
-  confidence: z.enum(['high', 'moderate', 'conditional']),
-  bottomLineReasoning: z.string(),
-  keyTradeOff: z.string(),
-  nextAction: z.string(),
+  verdictTitle: z.string().default('Recommendation'),
+  confidence: z.enum(['high', 'moderate', 'conditional']).default('moderate'),
+  bottomLineReasoning: z.string().default(''),
+  keyTradeOff: z.string().default(''),
+  nextAction: z.string().default(''),
 });
 
 export const AIConversationalSectionSchema = z.object({
-  whatImHearing: z.string(),
-  thinkingTogether: z.string(),
-  questionsToPonder: z.array(z.string()),
-  priorityPills: z.array(z.string()),
-  honestVerdict: z.string(),
+  whatImHearing: z.string().default(''),
+  thinkingTogether: z.string().default(''),
+  questionsToPonder: z.array(flexibleString).default([]),
+  priorityPills: z.array(flexibleString).default([]),
+  honestVerdict: z.string().default(''),
 });
 
 export const AIAnalysisResponseSchema = z.object({
-  summary: z.string(),
+  summary: z.string().default(''),
   finalVerdict: AIFinalVerdictSchema.optional(),
   conversational: AIConversationalSectionSchema.optional(),
-  alternativeInsights: z.array(AIAlternativeInsightSchema),
-  tradeOffs: z.array(z.string()),
-  risks: z.array(AIRiskItemSchema),
-  uncertainties: z.array(z.string()),
-  missingInformation: z.array(z.string()),
-  assumptions: z.array(z.string()),
-  followUpQuestions: z.array(z.string()),
-  overallNote: z.string(),
+  alternativeInsights: z.array(AIAlternativeInsightSchema).default([]),
+  tradeOffs: z.array(flexibleString).default([]),
+  risks: z.array(AIRiskItemSchema).default([]),
+  uncertainties: z.array(flexibleString).default([]),
+  missingInformation: z.array(flexibleString).default([]),
+  assumptions: z.array(flexibleString).default([]),
+  followUpQuestions: z.array(flexibleString).default([]),
+  overallNote: z.string().default(''),
 });
 
 export const AIScenarioResponseSchema = z.object({

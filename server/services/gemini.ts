@@ -98,14 +98,28 @@ export const geminiService = {
 
     const prompt = SYSTEM_PROMPT + '\n\nYou are helping a friend think through this decision. Return ONLY a valid JSON object with fields: summary, conversational (whatImHearing, thinkingTogether, questionsToPonder array, priorityPills array, honestVerdict), finalVerdict (recommendedAlternativeId, verdictTitle, confidence, bottomLineReasoning, keyTradeOff, nextAction), alternativeInsights array, tradeOffs array, risks array, uncertainties array, missingInformation array, assumptions array, followUpQuestions array, overallNote. confidence must be high or moderate or conditional. risks likelihood must be low or medium or high or unknown. Speak like a warm honest friend. Use exact alternativeId strings provided.\n\nINPUT DATA:\n' + JSON.stringify(payload, null, 2);
 
+function cleanAndParseJson(raw: string): any {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  }
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    // Try removing trailing commas
+    const fixed = cleaned.replace(/,\s*([\]}])/g, '$1');
+    return JSON.parse(fixed);
+  }
+}
+
     let retries = 0;
-    const maxRetries = 2;
+    const maxRetries = 1;
 
     while (retries <= maxRetries) {
       try {
         const result = await model.generateContent(prompt);
         const rawContent = result.response.text();
-        const parsed = JSON.parse(rawContent);
+        const parsed = cleanAndParseJson(rawContent);
 
         if (Array.isArray(parsed.alternativeInsights)) {
           parsed.alternativeInsights = parsed.alternativeInsights.map((alt: any) => ({
@@ -113,7 +127,19 @@ export const geminiService = {
             advantages: Array.isArray(alt.advantages) ? alt.advantages : typeof alt.advantages === 'string' && alt.advantages.trim() ? [alt.advantages] : [],
             drawbacks: Array.isArray(alt.drawbacks) ? alt.drawbacks : typeof alt.drawbacks === 'string' && alt.drawbacks.trim() ? [alt.drawbacks] : [],
             goalAlignment: Array.isArray(alt.goalAlignment) ? alt.goalAlignment : typeof alt.goalAlignment === 'string' && alt.goalAlignment.trim() ? [alt.goalAlignment] : [],
+            scoreContext: typeof alt.scoreContext === 'string' ? alt.scoreContext : '',
           }));
+        }
+
+        if (Array.isArray(parsed.risks)) {
+          parsed.risks = parsed.risks.map((r: any) => ({
+            description: typeof r?.description === 'string' ? r.description : (typeof r === 'string' ? r : 'Potential risk'),
+            appliesTo: Array.isArray(r?.appliesTo) ? r.appliesTo : (typeof r?.appliesTo === 'string' ? [r.appliesTo] : []),
+            likelihood: ['low', 'medium', 'high', 'unknown'].includes(r?.likelihood) ? r.likelihood : 'unknown',
+            basis: typeof r?.basis === 'string' ? r.basis : 'General assessment',
+          }));
+        } else {
+          parsed.risks = [];
         }
 
         const normalizeArray = (val: any) =>
