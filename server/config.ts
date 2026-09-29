@@ -11,6 +11,9 @@ const EnvSchema = z.object({
   SESSION_SECRET: z.string().min(16).default('decisionly-fallback-dev-secret-key-32-chars!'),
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('openai/gpt-oss-120b'),
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
+  ASSEMBLYAI_API_KEY: z.string().optional(),
   COOKIE_SECURE: z
     .string()
     .transform((val) => val === 'true')

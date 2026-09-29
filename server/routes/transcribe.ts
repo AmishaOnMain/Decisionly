@@ -1,23 +1,24 @@
-import { Router, Response } from 'express';
-import Groq, { toFile } from 'groq-sdk';
+﻿import { Router, Response } from 'express';
+import { AssemblyAI } from 'assemblyai';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth.js';
 import { config } from '../config.js';
 
 const router = Router();
 router.use(requireAuth);
 
-let groqClient: Groq | null = null;
-const apiKey = process.env.WHISPER_API_KEY || config.GROQ_API_KEY;
+let assemblyClient: AssemblyAI | null = null;
 
-if (apiKey && apiKey.startsWith('gsk_')) {
+if (config.ASSEMBLYAI_API_KEY) {
   try {
-    groqClient = new Groq({ apiKey });
+    assemblyClient = new AssemblyAI({ apiKey: config.ASSEMBLYAI_API_KEY });
+    console.log('[Transcribe] AssemblyAI initialized.');
   } catch (err) {
-    console.warn('[Transcribe] Failed to initialize Groq client:', err);
+    console.warn('[Transcribe] Failed to initialize AssemblyAI client:', err);
   }
 }
 
 // POST /api/transcribe
+// Accepts audio as base64 string and transcribes using AssemblyAI
 router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { audioBase64, mimeType = 'audio/webm' } = req.body;
@@ -27,38 +28,32 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    if (!groqClient) {
-      const currentKey = process.env.WHISPER_API_KEY || config.GROQ_API_KEY;
-      if (currentKey && currentKey.startsWith('gsk_')) {
-        groqClient = new Groq({ apiKey: currentKey });
-      }
-    }
-
-    if (!groqClient) {
+    if (!assemblyClient) {
       res.status(503).json({
-        error:
-          'Transcription API key not configured. Set GROQ_API_KEY or WHISPER_API_KEY in .env',
+        error: 'Transcription service not configured. Set ASSEMBLYAI_API_KEY in .env',
       });
       return;
     }
 
-    // Convert Base64 string to Buffer
+    // Convert base64 to Buffer
     const base64Data = audioBase64.replace(/^data:audio\/\w+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
 
-    // Create file object for Groq Whisper
-    const file = await toFile(buffer, 'dictation.webm', { type: mimeType });
+    // Upload audio to AssemblyAI then transcribe
+    const uploadUrl = await assemblyClient.files.upload(buffer);
 
-    const transcription = await groqClient.audio.transcriptions.create({
-      file,
-      model: 'whisper-large-v3-turbo',
-      language: 'en',
-      response_format: 'json',
+    const transcript = await assemblyClient.transcripts.transcribe({
+      audio_url: uploadUrl,
+      language_code: 'en',
     });
 
-    res.json({
-      text: transcription.text,
-    });
+    if (transcript.status === 'error') {
+      console.error('[Transcribe] AssemblyAI error:', transcript.error);
+      res.status(500).json({ error: transcript.error || 'Transcription failed' });
+      return;
+    }
+
+    res.json({ text: transcript.text || '' });
   } catch (err: any) {
     console.error('[Transcribe] Error during audio transcription:', err);
     res.status(500).json({ error: err.message || 'Failed to transcribe audio' });

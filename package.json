@@ -26,6 +26,8 @@
   "author": "Decisionly Team",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "assemblyai": "^4.41.5",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "cookie-parser": "^1.4.7",

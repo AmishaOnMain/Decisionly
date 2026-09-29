@@ -10,6 +10,7 @@ import { personalContextRepository } from '../db/repositories/personalContext.js
 import { calculateDeterministicScores } from '../services/scoring.js';
 import { contextRetrievalService } from '../services/contextRetrieval.js';
 import { groqService } from '../services/groq.js';
+import { geminiService } from '../services/gemini.js';
 import {
   CreateDecisionSchema,
   UpdateDecisionSchema,
@@ -323,14 +324,27 @@ router.post('/:decisionId/analyze', async (req: AuthenticatedRequest, res: Respo
     // Calculate deterministic comparison scores
     const deterministicResults = calculateDeterministicScores(alternatives, criteria);
 
-    // Call Groq / deterministic grounded engine
-    const { analysis: aiAnalysis, modelUsed } = await groqService.generateDecisionAnalysis(
+    // Call AI engine: Gemini first, then Groq fallback, then deterministic engine
+    let aiResult = await geminiService.generateDecisionAnalysis(
       decision,
       alternatives,
       criteria,
       deterministicResults,
       latestSnapshot
     );
+
+    if (!aiResult) {
+      console.log('[Decisions] Gemini unavailable or failed, falling back to Groq...');
+      aiResult = await groqService.generateDecisionAnalysis(
+        decision,
+        alternatives,
+        criteria,
+        deterministicResults,
+        latestSnapshot
+      );
+    }
+
+    const { analysis: aiAnalysis, modelUsed } = aiResult;
 
     // Save Analysis record
     const savedAnalysis = await analysesRepository.create({
@@ -444,13 +458,24 @@ router.post('/:decisionId/scenarios', async (req: AuthenticatedRequest, res: Res
 
     let aiExplanation = null;
     if (parsed.data.include_ai_explanation) {
-      const { explanation } = await groqService.generateScenarioExplanation(
+      // Try Gemini first, fall back to Groq
+      let scenarioResult = await geminiService.generateScenarioExplanation(
         baselineScores,
         scenarioScores,
         parsed.data.scenario_inputs,
         latestSnapshot
       );
-      aiExplanation = explanation;
+      if (!scenarioResult) {
+        scenarioResult = await groqService.generateScenarioExplanation(
+          baselineScores,
+          scenarioScores,
+          parsed.data.scenario_inputs,
+          latestSnapshot
+        );
+      }
+      if (scenarioResult) {
+        aiExplanation = scenarioResult.explanation;
+      }
     }
 
     const scenario = await scenariosRepository.create({
