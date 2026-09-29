@@ -35,7 +35,7 @@ app.use(
 // CORS configuration
 app.use(
   cors({
-    origin: config.NODE_ENV === 'production' ? config.APP_BASE_URL : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'],
+    origin: true,
     credentials: true,
   })
 );
@@ -110,10 +110,16 @@ async function startServer() {
   });
 }
 
-startServer().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+if (!process.env.VERCEL) {
+  startServer().catch((err) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+} else {
+  runMigrations().catch((err) => {
+    console.warn('[Vercel] DB migration notice:', err?.message || err);
+  });
+}
 
 export default app;
 

@@ -34,7 +34,10 @@ export async function query(text: string, params?: any[]): Promise<any> {
 }
 
 // Ensure database directory exists for local development store
-const dataDir = path.resolve(process.cwd(), '.data');
+const dataDir = process.env.VERCEL
+  ? path.resolve('/tmp', '.data')
+  : path.resolve(process.cwd(), '.data');
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
