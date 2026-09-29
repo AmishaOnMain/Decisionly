@@ -10,7 +10,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().optional(),
   SESSION_SECRET: z.string().min(16).default('decisionly-fallback-dev-secret-key-32-chars!'),
   GROQ_API_KEY: z.string().optional(),
-  GROQ_MODEL: z.string().default('llama-3.3-70b-versatile'),
+  GROQ_MODEL: z.string().default('openai/gpt-oss-120b'),
   COOKIE_SECURE: z
     .string()
     .transform((val) => val === 'true')

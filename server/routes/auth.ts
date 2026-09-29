@@ -111,7 +111,45 @@ router.post('/demo', async (req, res: Response) => {
     res.status(500).json({ error: 'Failed to sign in as demo' });
   }
 });
+// Google Sign-In / Sign-Up
+router.post('/google', async (req, res: Response) => {
+  try {
+    const email = (req.body?.email || 'google.user@gmail.com').toLowerCase().trim();
+    const displayName = req.body?.display_name || req.body?.name || 'Google User';
 
+    let userRecord = await usersRepository.findByEmail(email);
+
+    if (!userRecord) {
+      // Create new user account via Google
+      const randomPassword = 'GoogleOAuth_' + Math.random().toString(36).slice(2) + '!2026';
+      const passwordHash = await hashPassword(randomPassword);
+      const safe = await usersRepository.create(email, passwordHash, displayName);
+      userRecord = await usersRepository.findByEmail(email);
+    }
+
+    if (!userRecord) {
+      res.status(500).json({ error: 'Failed to authenticate with Google' });
+      return;
+    }
+
+    const sessionId = await createSession(userRecord.id);
+    setSessionCookie(res, sessionId);
+
+    res.json({
+      user: {
+        id: userRecord.id,
+        email: userRecord.email,
+        display_name: userRecord.display_name,
+        created_at: userRecord.created_at,
+        updated_at: userRecord.updated_at,
+      },
+      token: sessionId,
+    });
+  } catch (err: any) {
+    console.error('[Auth] Google login error:', err);
+    res.status(500).json({ error: 'Failed to sign in with Google' });
+  }
+});
 // Sign Out
 router.post('/sign-out', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {

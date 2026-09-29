@@ -143,8 +143,18 @@ export interface AIAlternativeInsight {
   scoreContext: string;
 }
 
+export interface AIFinalVerdict {
+  recommendedAlternativeId: string;
+  verdictTitle: string;
+  confidence: 'high' | 'moderate' | 'conditional';
+  bottomLineReasoning: string;
+  keyTradeOff: string;
+  nextAction: string;
+}
+
 export interface AIAnalysisResponse {
   summary: string;
+  finalVerdict?: AIFinalVerdict;
   alternativeInsights: AIAlternativeInsight[];
   tradeOffs: string[];
   risks: AIRiskItem[];

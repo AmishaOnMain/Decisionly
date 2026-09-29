@@ -106,8 +106,17 @@ export const groqService = {
               {
                 role: 'user',
                 content: `Perform a structured decision intelligence analysis on the following approved data.
+Crucial directive: Provide a decisive, clear final verdict so the user is NOT confused by excess raw data.
 Return ONLY a valid JSON object matching the schema with fields:
-- summary (string)
+- summary (string: concise executive overview)
+- finalVerdict: {
+    recommendedAlternativeId: string (exact alternativeId of the best choice),
+    verdictTitle: string (e.g. "Choose [Alternative Name]"),
+    confidence: "high" | "moderate" | "conditional",
+    bottomLineReasoning: string (maximum 2 clear sentences explaining why this option is superior based on the user's weighted criteria),
+    keyTradeOff: string (1 direct sentence stating the primary compromise),
+    nextAction: string (concrete next step to execute this decision)
+  }
 - alternativeInsights (array of { alternativeId, advantages, drawbacks, goalAlignment, scoreContext })
 - tradeOffs (array of string)
 - risks (array of { description, appliesTo: string[], likelihood: "low" | "medium" | "high" | "unknown", basis: string })
@@ -130,6 +139,38 @@ ${JSON.stringify(payload, null, 2)}`,
 
           const rawContent = completion.choices[0]?.message?.content || '{}';
           const parsed = JSON.parse(rawContent);
+
+          // Normalize any fields where the LLM may have produced a string instead of an array of strings
+          if (Array.isArray(parsed.alternativeInsights)) {
+            parsed.alternativeInsights = parsed.alternativeInsights.map((alt: any) => ({
+              ...alt,
+              advantages: Array.isArray(alt.advantages)
+                ? alt.advantages
+                : typeof alt.advantages === 'string' && alt.advantages.trim()
+                ? [alt.advantages]
+                : [],
+              drawbacks: Array.isArray(alt.drawbacks)
+                ? alt.drawbacks
+                : typeof alt.drawbacks === 'string' && alt.drawbacks.trim()
+                ? [alt.drawbacks]
+                : [],
+              goalAlignment: Array.isArray(alt.goalAlignment)
+                ? alt.goalAlignment
+                : typeof alt.goalAlignment === 'string' && alt.goalAlignment.trim()
+                ? [alt.goalAlignment]
+                : [],
+            }));
+          }
+
+          const normalizeArray = (val: any) =>
+            Array.isArray(val) ? val : typeof val === 'string' && val.trim() ? [val] : [];
+
+          if (parsed.tradeOffs) parsed.tradeOffs = normalizeArray(parsed.tradeOffs);
+          if (parsed.uncertainties) parsed.uncertainties = normalizeArray(parsed.uncertainties);
+          if (parsed.missingInformation) parsed.missingInformation = normalizeArray(parsed.missingInformation);
+          if (parsed.assumptions) parsed.assumptions = normalizeArray(parsed.assumptions);
+          if (parsed.followUpQuestions) parsed.followUpQuestions = normalizeArray(parsed.followUpQuestions);
+
           const validated = AIAnalysisResponseSchema.parse(parsed);
 
           return {
@@ -301,8 +342,29 @@ function generateLocalDeterministicAnalysis(
     'What is your fallback plan if implementation takes twice as long as anticipated?',
   ];
 
+  // Construct final verdict for decisive clarity
+  const runnerUp = scores.alternativeScores.find((a) => a.rank === 2);
+  const scoreDiff = (topOption?.totalScore ?? 0) - (runnerUp?.totalScore ?? 0);
+  const confidence: 'high' | 'moderate' | 'conditional' =
+    scoreDiff >= 12 ? 'high' : scoreDiff >= 5 ? 'moderate' : 'conditional';
+
+  const bestChoiceName = topOption?.alternativeName || alternatives[0]?.name || 'Top Option';
+  const bestChoiceId = topOption?.alternativeId || alternatives[0]?.id || '';
+
+  const finalVerdict = {
+    recommendedAlternativeId: bestChoiceId,
+    verdictTitle: `Recommended Choice: ${bestChoiceName}`,
+    confidence,
+    bottomLineReasoning: topOption?.totalScore
+      ? `"${bestChoiceName}" emerges as your strongest path with a leading utility score of ${topOption.totalScore}/100, outperforming alternatives across your highest-weighted priorities.`
+      : `"${bestChoiceName}" is recommended as the most aligned option based on your qualitative criteria.`,
+    keyTradeOff: tradeOffs[0] || 'Balancing immediate execution speed against long-term flexibility.',
+    nextAction: `Formally commit to "${bestChoiceName}" as your primary strategy and schedule an initial milestone review.`,
+  };
+
   return {
     summary,
+    finalVerdict,
     alternativeInsights,
     tradeOffs,
     risks,

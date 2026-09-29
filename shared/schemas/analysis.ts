@@ -15,8 +15,18 @@ export const AIAlternativeInsightSchema = z.object({
   scoreContext: z.string(),
 });
 
+export const AIFinalVerdictSchema = z.object({
+  recommendedAlternativeId: z.string(),
+  verdictTitle: z.string(),
+  confidence: z.enum(['high', 'moderate', 'conditional']),
+  bottomLineReasoning: z.string(),
+  keyTradeOff: z.string(),
+  nextAction: z.string(),
+});
+
 export const AIAnalysisResponseSchema = z.object({
   summary: z.string(),
+  finalVerdict: AIFinalVerdictSchema.optional(),
   alternativeInsights: z.array(AIAlternativeInsightSchema),
   tradeOffs: z.array(z.string()),
   risks: z.array(AIRiskItemSchema),

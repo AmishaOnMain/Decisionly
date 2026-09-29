@@ -347,6 +347,10 @@ export const DecisionWorkspacePage: React.FC = () => {
               alternatives={alternatives}
               modelName={latestAnalysis.model_name}
               createdAt={latestAnalysis.created_at}
+              chosenAlternativeId={decision.chosen_alternative_id}
+              onAdoptRecommendation={(altId) =>
+                handleRecordOutcome(altId, 'Adopted AI recommended final verdict.')
+              }
             />
           ) : (
             <Card className="p-8 text-center space-y-3 border-dashed">

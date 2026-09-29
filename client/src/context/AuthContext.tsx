@@ -8,6 +8,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
   demoLogin: () => Promise<void>;
+  googleLogin: (email?: string, name?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -52,6 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(data.user);
   };
 
+  const googleLogin = async (email?: string, name?: string) => {
+    const data = await api.post<{ user: UserSafe }>('/api/auth/google', {
+      email,
+      display_name: name,
+    });
+    setUser(data.user);
+  };
+
   const signOut = async () => {
     try {
       await api.post('/api/auth/sign-out');
@@ -68,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signIn,
         signUp,
         demoLogin,
+        googleLogin,
         signOut,
         refreshUser,
       }}
