@@ -12,7 +12,7 @@ const EnvSchema = z.object({
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default('openai/gpt-oss-120b'),
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL: z.string().default('gemini-2.0-flash'),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   ASSEMBLYAI_API_KEY: z.string().optional(),
   COOKIE_SECURE: z
     .string()
@@ -32,3 +32,4 @@ if (!parsed.success) {
 }
 
 export const config = parsed.data;
+

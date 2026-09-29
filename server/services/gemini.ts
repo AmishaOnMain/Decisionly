@@ -21,14 +21,14 @@ if (config.GEMINI_API_KEY) {
   try {
     genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
     model = genAI.getGenerativeModel({
-      model: config.GEMINI_MODEL || 'gemini-2.0-flash',
+      model: config.GEMINI_MODEL || 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.3,
         maxOutputTokens: 4000,
       },
     });
-    console.log('[Gemini] Initialized with model: ' + (config.GEMINI_MODEL || 'gemini-2.0-flash'));
+    console.log('[Gemini] Initialized with model: ' + (config.GEMINI_MODEL || 'gemini-2.5-flash'));
   } catch (err) {
     console.warn('[Gemini] Failed to initialize client:', (err as Error).message);
     genAI = null;
@@ -44,7 +44,7 @@ export const geminiService = {
   },
 
   getModelName(): string {
-    return config.GEMINI_MODEL || 'gemini-2.0-flash';
+    return config.GEMINI_MODEL || 'gemini-2.5-flash';
   },
 
   async generateDecisionAnalysis(
@@ -159,7 +159,7 @@ export const geminiService = {
     const prompt = SYSTEM_PROMPT + '\n\nExplain the differences between the baseline decision scores and this what-if scenario. Return ONLY valid JSON: { "summary": string, "changes": string[], "limitations": string[] }\n\nDATA:\n' + JSON.stringify(payload, null, 2);
 
     try {
-      const result = await geminiModel.generateContent(prompt);
+      const result = await model!.generateContent(prompt);
       const raw = result.response.text();
       const parsed = JSON.parse(raw);
       const validated = AIScenarioResponseSchema.parse(parsed);

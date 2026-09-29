@@ -164,8 +164,8 @@ router.post('/:decisionId/archive', async (req: AuthenticatedRequest, res: Respo
   }
 });
 
-// 7. Replace Alternatives
-router.put('/:decisionId/alternatives', async (req: AuthenticatedRequest, res: Response) => {
+// 7. Replace Alternatives (support both PUT and POST)
+const handleReplaceAlternatives = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const decisionId = req.params.decisionId as string;
@@ -185,10 +185,12 @@ router.put('/:decisionId/alternatives', async (req: AuthenticatedRequest, res: R
     console.error('[Decisions] Replace alternatives error:', err);
     res.status(500).json({ error: err.message || 'Failed to update alternatives' });
   }
-});
+};
+router.put('/:decisionId/alternatives', handleReplaceAlternatives);
+router.post('/:decisionId/alternatives', handleReplaceAlternatives);
 
-// 8. Replace Criteria
-router.put('/:decisionId/criteria', async (req: AuthenticatedRequest, res: Response) => {
+// 8. Replace Criteria (support both PUT and POST)
+const handleReplaceCriteria = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const decisionId = req.params.decisionId as string;
@@ -208,10 +210,12 @@ router.put('/:decisionId/criteria', async (req: AuthenticatedRequest, res: Respo
     console.error('[Decisions] Replace criteria error:', err);
     res.status(500).json({ error: err.message || 'Failed to update criteria' });
   }
-});
+};
+router.put('/:decisionId/criteria', handleReplaceCriteria);
+router.post('/:decisionId/criteria', handleReplaceCriteria);
 
-// 9. Score calculation preview
-router.post('/:decisionId/score', async (req: AuthenticatedRequest, res: Response) => {
+// 9. Score calculation preview (supports /score and /calculate)
+const handleCalculateScore = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const decisionId = req.params.decisionId as string;
@@ -232,7 +236,9 @@ router.post('/:decisionId/score', async (req: AuthenticatedRequest, res: Respons
     console.error('[Decisions] Score error:', err);
     res.status(500).json({ error: 'Failed to calculate scores' });
   }
-});
+};
+router.post('/:decisionId/score', handleCalculateScore);
+router.post('/:decisionId/calculate', handleCalculateScore);
 
 // 10. Context Preview (Candidate entries)
 router.post('/:decisionId/context-preview', async (req: AuthenticatedRequest, res: Response) => {
@@ -342,6 +348,11 @@ router.post('/:decisionId/analyze', async (req: AuthenticatedRequest, res: Respo
         deterministicResults,
         latestSnapshot
       );
+    }
+
+    if (!aiResult) {
+      res.status(503).json({ error: 'AI analysis engines are temporarily unavailable. Please try again shortly.' });
+      return;
     }
 
     const { analysis: aiAnalysis, modelUsed } = aiResult;

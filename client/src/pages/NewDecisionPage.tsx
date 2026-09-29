@@ -3,53 +3,36 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowLeft,
-  Save,
-  CheckCircle2,
-  Sparkles,
-  Layers,
-  Sliders,
-  Scale,
-  ShieldCheck,
   Plus,
   Trash2,
+  Sparkles,
 } from 'lucide-react';
-import { TARGET_CATEGORIES, TargetCategory, CATEGORY_DETAILS } from '@shared/constants/categories.js';
 import { Alternative, Criterion } from '@shared/types/index.js';
 import { api } from '../lib/api.js';
-import { Card } from '../components/ui/Card.js';
-import { Button } from '../components/ui/Button.js';
-import { Input, Textarea } from '../components/ui/Input.js';
-import { AlternativeEditor } from '../components/decisions/AlternativeEditor.js';
-import { CriteriaEditor } from '../components/decisions/CriteriaEditor.js';
-import { ContextPicker } from '../components/personal-space/ContextPicker.js';
+import { VoiceDictationButton } from '../components/ui/VoiceDictationButton.js';
 
 export const NewDecisionPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // Wizard Step: 1 = Details, 2 = Alternatives, 3 = Criteria, 4 = Values Matrix, 5 = Context & Run
+  // 3-step wizard: 1 = The question, 2 = What matters, 3 = Review
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Decision basic details
+  // Form State (matches Picture 3 & 5)
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<TargetCategory>('Career');
-  const [customCategory, setCustomCategory] = useState('');
-  const [desiredOutcome, setDesiredOutcome] = useState('');
+  const [category, setCategory] = useState<string>('Career');
   const [deadline, setDeadline] = useState('');
-  const [constraints, setConstraints] = useState<string[]>([]);
-  const [assumptions, setAssumptions] = useState<string[]>([]);
-  const [newConstraint, setNewConstraint] = useState('');
-  const [newAssumption, setNewAssumption] = useState('');
+  const [desiredOutcome, setDesiredOutcome] = useState('');
 
-  // Alternatives & Criteria
+  // Options / Alternatives
   const [alternatives, setAlternatives] = useState<Alternative[]>([
     {
       id: crypto.randomUUID(),
       decision_id: '',
-      name: 'Option A',
-      description: '',
+      name: 'Option A: Make the change',
+      description: 'Step into the new opportunity or role',
       sort_order: 0,
       values: {},
       created_at: '',
@@ -58,8 +41,8 @@ export const NewDecisionPage: React.FC = () => {
     {
       id: crypto.randomUUID(),
       decision_id: '',
-      name: 'Option B',
-      description: '',
+      name: 'Option B: Stay the current course',
+      description: 'Preserve continuity and current stability',
       sort_order: 1,
       values: {},
       created_at: '',
@@ -67,13 +50,14 @@ export const NewDecisionPage: React.FC = () => {
     },
   ]);
 
+  // Key criteria / principles
   const [criteria, setCriteria] = useState<Criterion[]>([
     {
       id: crypto.randomUUID(),
       decision_id: '',
-      name: 'Financial Return / Value',
-      description: '',
-      criterion_type: 'numeric',
+      name: 'Peace of mind & energy',
+      description: 'How it affects mental load and everyday rhythm',
+      criterion_type: 'qualitative',
       direction: 'higher_better',
       weight: 40,
       sort_order: 0,
@@ -83,11 +67,11 @@ export const NewDecisionPage: React.FC = () => {
     {
       id: crypto.randomUUID(),
       decision_id: '',
-      name: 'Time & Effort Required',
-      description: '',
-      criterion_type: 'numeric',
-      direction: 'lower_better', // lower is better
-      weight: 30,
+      name: 'Growth & alignment',
+      description: 'How well it supports where you want to be in 2 years',
+      criterion_type: 'qualitative',
+      direction: 'higher_better',
+      weight: 35,
       sort_order: 1,
       created_at: '',
       updated_at: '',
@@ -95,485 +79,601 @@ export const NewDecisionPage: React.FC = () => {
     {
       id: crypto.randomUUID(),
       decision_id: '',
-      name: 'Alignment with Values',
-      description: '',
-      criterion_type: 'qualitative',
+      name: 'Financial sustainability',
+      description: 'Income, costs, and stability',
+      criterion_type: 'numeric',
       direction: 'higher_better',
-      weight: 30,
+      weight: 25,
       sort_order: 2,
       created_at: '',
       updated_at: '',
     },
   ]);
 
-  // Saved decision ID once draft is persisted
-  const [savedDecisionId, setSavedDecisionId] = useState<string | null>(null);
+  const [newAltName, setNewAltName] = useState('');
+  const [newCritName, setNewCritName] = useState('');
 
-  const addConstraint = () => {
-    if (newConstraint.trim()) {
-      setConstraints([...constraints, newConstraint.trim()]);
-      setNewConstraint('');
-    }
-  };
-
-  const removeConstraint = (idx: number) => {
-    setConstraints(constraints.filter((_, i) => i !== idx));
-  };
-
-  const addAssumption = () => {
-    if (newAssumption.trim()) {
-      setAssumptions([...assumptions, newAssumption.trim()]);
-      setNewAssumption('');
-    }
-  };
-
-  const removeAssumption = (idx: number) => {
-    setAssumptions(assumptions.filter((_, i) => i !== idx));
-  };
-
-  // Save Draft to Backend
-  const saveDraft = async (): Promise<string> => {
+  const handleSaveDecision = async () => {
     setError(null);
-    if (!title.trim() || title.length < 3) {
-      throw new Error('Decision title must be at least 3 characters.');
-    }
-    if (!description.trim() || description.length < 5) {
-      throw new Error('Please describe the situation in at least 5 characters.');
+    if (!title.trim()) {
+      setError('Please name what you are deciding.');
+      return;
     }
 
     setIsSaving(true);
     try {
-      let decId = savedDecisionId;
-      if (!decId) {
-        // Create draft
-        const res = await api.post<{ decision: { id: string } }>('/api/decisions', {
-          title: title.trim(),
-          description: description.trim(),
-          category,
-          custom_category: category === 'Custom' ? customCategory.trim() : null,
-          desired_outcome: desiredOutcome.trim() || null,
-          deadline: deadline || null,
-          constraints,
-          assumptions,
-        });
-        decId = res.decision.id;
-        setSavedDecisionId(decId);
-      } else {
-        // Update draft
-        await api.patch(`/api/decisions/${decId}`, {
-          title: title.trim(),
-          description: description.trim(),
-          category,
-          custom_category: category === 'Custom' ? customCategory.trim() : null,
-          desired_outcome: desiredOutcome.trim() || null,
-          deadline: deadline || null,
-          constraints,
-          assumptions,
-        });
-      }
-
-      // Sync alternatives and criteria
-      await Promise.all([
-        api.put(`/api/decisions/${decId}/alternatives`, {
-          alternatives: alternatives.map((a, i) => ({
-            id: a.id,
-            name: a.name.trim(),
-            description: a.description || '',
-            sort_order: i,
-            values: a.values || {},
-          })),
-        }),
-        api.put(`/api/decisions/${decId}/criteria`, {
-          criteria: criteria.map((c, i) => ({
-            id: c.id,
-            name: c.name.trim(),
-            description: c.description || '',
-            criterion_type: c.criterion_type,
-            direction: c.direction,
-            weight: c.weight,
-            sort_order: i,
-          })),
-        }),
-      ]);
-
-      return decId;
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleNext = async () => {
-    setError(null);
-    try {
-      if (currentStep === 1) {
-        if (!title.trim() || title.length < 3) {
-          setError('Please provide a decision title (at least 3 characters).');
-          return;
-        }
-        if (!description.trim() || description.length < 5) {
-          setError('Please provide a situation description (at least 5 characters).');
-          return;
-        }
-      } else if (currentStep === 2) {
-        if (alternatives.length < 2) {
-          setError('At least 2 alternatives are required for comparison.');
-          return;
-        }
-        const names = alternatives.map((a) => a.name.toLowerCase().trim());
-        if (new Set(names).size !== names.length) {
-          setError('Alternative names must be unique.');
-          return;
-        }
-      } else if (currentStep === 3) {
-        if (criteria.length < 1) {
-          setError('At least 1 evaluation criterion is required.');
-          return;
-        }
-      }
-
-      // Automatically persist draft when advancing to step 5 (Context selection)
-      if (currentStep === 4) {
-        const id = await saveDraft();
-        setCurrentStep(5);
-        return;
-      }
-
-      setCurrentStep((prev) => prev + 1);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to advance step');
-    }
-  };
-
-  const handleContextConfirmedAndAnalyze = async (
-    includedIds: string[],
-    decisionSpecificNotes: string[]
-  ) => {
-    setIsSaving(true);
-    setError(null);
-    try {
-      let decId = savedDecisionId;
-      if (!decId) {
-        decId = await saveDraft();
-      }
-
-      // 1. Confirm context snapshot
-      await api.post(`/api/decisions/${decId}/context-confirm`, {
-        included_entry_ids: includedIds,
-        decision_specific_context: decisionSpecificNotes,
+      // 1. Create Decision
+      const res = await api.post<{ decision: { id: string } }>('/api/decisions', {
+        title: title.trim(),
+        description: description.trim() || title.trim(),
+        category,
+        desired_outcome: desiredOutcome.trim() || null,
+        deadline: deadline || null,
       });
 
-      // 2. Trigger full deterministic & AI analysis
-      await api.post(`/api/decisions/${decId}/analyze`);
+      const decId = res.decision.id;
 
-      // 3. Navigate to workspace to view results!
+      // 2. Save Alternatives
+      await api.post(`/api/decisions/${decId}/alternatives`, {
+        alternatives: alternatives.map((a, i) => ({
+          name: a.name,
+          description: a.description || '',
+          sort_order: i,
+          values: {},
+        })),
+      });
+
+      // 3. Save Criteria
+      await api.post(`/api/decisions/${decId}/criteria`, {
+        criteria: criteria.map((c, i) => ({
+          name: c.name,
+          description: c.description || '',
+          criterion_type: c.criterion_type || 'qualitative',
+          direction: c.direction || 'higher_better',
+          weight: c.weight || 30,
+          sort_order: i,
+        })),
+      });
+
+      // 4. Navigate to workspace to start thinking
       navigate(`/app/decisions/${decId}`);
     } catch (err: any) {
-      setError(err?.message || 'Failed to complete analysis');
-    } finally {
+      setError(err?.message || 'Could not save this decision. Please try again.');
       setIsSaving(false);
     }
   };
 
-  const handleSaveAndExit = async () => {
-    try {
-      const decId = await saveDraft();
-      navigate(`/app/decisions/${decId}`);
-    } catch (err: any) {
-      setError(err?.message || 'Failed to save draft');
-    }
-  };
-
-  const steps = [
-    { num: 1, label: 'Details' },
-    { num: 2, label: 'Alternatives' },
-    { num: 3, label: 'Criteria' },
-    { num: 4, label: 'Values' },
-    { num: 5, label: 'Context & Analyze' },
-  ];
-
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Top Wizard Navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Create New Decision
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Step {currentStep} of 5: {steps[currentStep - 1].label}
-          </p>
-        </div>
-
-        {/* Action: Save Draft */}
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSaveAndExit}
-            isLoading={isSaving}
-            icon={<Save className="w-4 h-4" />}
-          >
-            Save Draft & Exit
-          </Button>
-        </div>
+    <div className="space-y-8 animate-fade-up max-w-4xl mx-auto">
+      {/* Page Header (matches Picture 3 & 5) */}
+      <div className="space-y-2">
+        <p className="text-[10px] sm:text-xs font-semibold tracking-[0.2em] uppercase text-[#265347] dark:text-[#5EAD9C]">
+          NEW DECISION
+        </p>
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-normal tracking-tight text-stone-900 dark:text-stone-100">
+          Give the question a shape.
+        </h1>
+        <p className="text-sm sm:text-base text-stone-500 dark:text-stone-400">
+          There is no perfect way to frame it. Start with what feels true today.
+        </p>
       </div>
 
-      {/* Progress Indicators */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
-        {steps.map((s) => (
-          <button
-            key={s.num}
-            type="button"
-            disabled={s.num > currentStep && !savedDecisionId}
-            onClick={() => s.num < currentStep && setCurrentStep(s.num)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              s.num === currentStep
-                ? 'bg-brand-600 text-white font-bold shadow-sm'
-                : s.num < currentStep
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-60'
+      {/* Stepper (matches Picture 3: 1 The question, 2 What matters, 3 Review) */}
+      <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm font-medium">
+        {/* Step 1 */}
+        <div
+          onClick={() => setCurrentStep(1)}
+          className={`flex items-center gap-2 cursor-pointer transition-colors ${
+            currentStep === 1
+              ? 'text-stone-900 dark:text-stone-100 font-semibold'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          <div
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+              currentStep === 1
+                ? 'bg-amber-500 text-stone-900 shadow-sm'
+                : 'bg-forest-600 text-white dark:bg-forest-500'
             }`}
           >
-            {s.num < currentStep ? (
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            ) : (
-              <span>{s.num}</span>
-            )}
-            <span>{s.label}</span>
-          </button>
-        ))}
+            1
+          </div>
+          <span>The question</span>
+        </div>
+
+        <div className="w-10 sm:w-16 h-px bg-stone-300 dark:bg-white/10" />
+
+        {/* Step 2 */}
+        <div
+          onClick={() => title.trim() && setCurrentStep(2)}
+          className={`flex items-center gap-2 transition-colors ${
+            title.trim() ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+          } ${
+            currentStep === 2
+              ? 'text-stone-900 dark:text-stone-100 font-semibold'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          <div
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+              currentStep === 2
+                ? 'bg-amber-500 text-stone-900 shadow-sm'
+                : 'border border-stone-300 dark:border-white/20 text-stone-400'
+            }`}
+          >
+            2
+          </div>
+          <span>What matters</span>
+        </div>
+
+        <div className="w-10 sm:w-16 h-px bg-stone-300 dark:bg-white/10" />
+
+        {/* Step 3 */}
+        <div
+          onClick={() => title.trim() && setCurrentStep(3)}
+          className={`flex items-center gap-2 transition-colors ${
+            title.trim() ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+          } ${
+            currentStep === 3
+              ? 'text-stone-900 dark:text-stone-100 font-semibold'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          <div
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+              currentStep === 3
+                ? 'bg-amber-500 text-stone-900 shadow-sm'
+                : 'border border-stone-300 dark:border-white/20 text-stone-400'
+            }`}
+          >
+            3
+          </div>
+          <span>Review</span>
+        </div>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400">
+        <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-xs text-rose-700 dark:text-rose-300">
           {error}
         </div>
       )}
 
-      {/* STEP 1: Decision Details */}
+      {/* STEP 1: The Question (matches Picture 3 & 5) */}
       {currentStep === 1 && (
-        <Card className="p-6 space-y-6 border-slate-200 dark:border-white/10">
-          <div className="space-y-4">
-            <Input
-              label="Decision Title"
-              placeholder="e.g., Relocating to Austin vs. Remaining in New York"
+        <div className="rounded-2xl p-6 sm:p-9 bg-white dark:bg-[#152226] border border-stone-200/80 dark:border-white/5 shadow-sm space-y-6">
+          {/* Field 1: What are you deciding? */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-stone-800 dark:text-stone-200">
+              What are you deciding?
+            </label>
+            <input
+              type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
+              placeholder="e.g. Whether to take the new role"
+              className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
             />
+          </div>
 
-            {/* 9 Predefined Categories Grid */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Decision Domain
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {TARGET_CATEGORIES.map((catKey) => {
-                  const details = CATEGORY_DETAILS[catKey];
-                  return (
-                    <button
-                      type="button"
-                      key={catKey}
-                      onClick={() => setCategory(catKey)}
-                      className={`p-3 rounded-xl border text-left transition-all ${
-                        category === catKey
-                          ? 'bg-brand-500/10 border-brand-500 text-brand-600 dark:text-brand-300 font-bold shadow-sm'
-                          : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300'
-                      }`}
-                    >
-                      <div className="text-xs font-semibold">{details.name}</div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                        {details.description}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {category === 'Custom' && (
-                <div className="pt-2">
-                  <Input
-                    label="Custom Category Name"
-                    placeholder="e.g., Intellectual Property or Vehicle Lease"
-                    value={customCategory}
-                    onChange={(e) => setCustomCategory(e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-
-            <Textarea
-              label="Current Situation & Context"
-              rows={4}
-              placeholder="Describe the context of this decision, what triggered it, and the stakes involved..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Desired Outcome (Optional)"
-                placeholder="e.g., Lower cost of living while maintaining career velocity"
-                value={desiredOutcome}
-                onChange={(e) => setDesiredOutcome(e.target.value)}
+          {/* Field 2: What is the situation? */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-semibold text-stone-800 dark:text-stone-200">
+              What is the situation?
+            </label>
+            <p className="text-xs text-stone-400">
+              Include the details that make this more than a simple yes or no.
+            </p>
+            <div className="relative">
+              <textarea
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="I am weighing..."
+                className="w-full px-4 py-3 pb-12 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none"
               />
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Target Decision Deadline (Optional)
-                </label>
+              {/* AssemblyAI Voice Dictation inside the situation box */}
+              <div className="absolute right-3 bottom-3 flex items-center gap-2">
+                <VoiceDictationButton
+                  onTranscript={(text) => {
+                    setDescription((prev) => (prev ? prev + ' ' + text : text));
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Two-column Row: Category & Date */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Category dropdown */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-stone-800 dark:text-stone-200">
+                Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all cursor-pointer"
+              >
+                <option value="Career" className="dark:bg-[#152226]">Career</option>
+                <option value="Personal" className="dark:bg-[#152226]">Personal</option>
+                <option value="Financial" className="dark:bg-[#152226]">Financial</option>
+                <option value="Relocation" className="dark:bg-[#152226]">Relocation</option>
+                <option value="Health" className="dark:bg-[#152226]">Health</option>
+                <option value="Travel" className="dark:bg-[#152226]">Travel</option>
+                <option value="Education" className="dark:bg-[#152226]">Education</option>
+                <option value="Custom" className="dark:bg-[#152226]">Other</option>
+              </select>
+            </div>
+
+            {/* Useful Date */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-stone-800 dark:text-stone-200">
+                Is there a useful date?
+              </label>
+              <div className="relative">
                 <input
                   type="date"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full rounded-xl px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-[#090d16] border border-slate-300/80 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-brand-500"
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
                 />
               </div>
-            </div>
-
-            {/* Decision Constraints */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Decision Constraints (Optional)
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g., Maximum monthly rent of $2,400"
-                  value={newConstraint}
-                  onChange={(e) => setNewConstraint(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addConstraint())}
-                />
-                <Button variant="secondary" type="button" onClick={addConstraint} icon={<Plus className="w-4 h-4" />}>
-                  Add
-                </Button>
-              </div>
-              {constraints.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {constraints.map((c, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300"
-                    >
-                      {c}
-                      <button type="button" onClick={() => removeConstraint(i)} className="text-slate-400 hover:text-red-500">
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Assumptions */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Assumptions & Unknowns (Optional)
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="e.g., Assuming tax laws remain constant over the next 2 years"
-                  value={newAssumption}
-                  onChange={(e) => setNewAssumption(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAssumption())}
-                />
-                <Button variant="secondary" type="button" onClick={addAssumption} icon={<Plus className="w-4 h-4" />}>
-                  Add
-                </Button>
-              </div>
-              {assumptions.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {assumptions.map((a, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300"
-                    >
-                      {a}
-                      <button type="button" onClick={() => removeAssumption(i)} className="text-slate-400 hover:text-red-500">
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
-        </Card>
+
+          {/* Field 4: What would a good outcome protect? */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-stone-800 dark:text-stone-200">
+              What would a good outcome protect?
+            </label>
+            <textarea
+              rows={3}
+              value={desiredOutcome}
+              onChange={(e) => setDesiredOutcome(e.target.value)}
+              placeholder="A good outcome would leave room for..."
+              className="w-full px-4 py-3 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-sm text-stone-900 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none"
+            />
+          </div>
+
+          {/* Action buttons at bottom (matches Picture 5) */}
+          <div className="flex items-center justify-between pt-6 border-t border-stone-100 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => navigate('/app')}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-stone-200 dark:border-white/10 hover:bg-stone-100 dark:hover:bg-white/5 text-stone-700 dark:text-stone-300 transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveDecision}
+                disabled={!title.trim() || isSaving}
+                className="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+              >
+                Save draft
+              </button>
+
+              <button
+                type="button"
+                disabled={!title.trim() || isSaving}
+                onClick={() => setCurrentStep(2)}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all cursor-pointer disabled:opacity-40"
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* STEP 2: Alternatives */}
+      {/* STEP 2: What Matters (Options & Criteria) */}
       {currentStep === 2 && (
-        <Card className="p-6 border-slate-200 dark:border-white/10">
-          <AlternativeEditor
-            alternatives={alternatives}
-            criteria={[]}
-            onChange={(updated) => setAlternatives(updated)}
-          />
-        </Card>
+        <div className="rounded-2xl p-6 sm:p-9 bg-white dark:bg-[#152226] border border-stone-200/80 dark:border-white/5 shadow-sm space-y-8">
+          {/* Options / Paths being weighed */}
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-serif font-semibold text-stone-900 dark:text-stone-100">
+                The paths on the table
+              </h2>
+              <p className="text-xs text-stone-400">
+                What are the concrete options you are choosing between?
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {alternatives.map((alt, idx) => (
+                <div
+                  key={alt.id}
+                  className="p-4 rounded-xl border border-stone-200/80 dark:border-white/10 bg-stone-50/50 dark:bg-white/[0.02] flex items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 flex-1">
+                    <input
+                      type="text"
+                      value={alt.name}
+                      onChange={(e) => {
+                        const copy = [...alternatives];
+                        copy[idx].name = e.target.value;
+                        setAlternatives(copy);
+                      }}
+                      className="w-full text-sm font-semibold bg-transparent border-0 outline-none text-stone-900 dark:text-stone-100"
+                    />
+                    <input
+                      type="text"
+                      value={alt.description || ''}
+                      placeholder="Add a brief note about this path..."
+                      onChange={(e) => {
+                        const copy = [...alternatives];
+                        copy[idx].description = e.target.value;
+                        setAlternatives(copy);
+                      }}
+                      className="w-full text-xs text-stone-500 dark:text-stone-400 bg-transparent border-0 outline-none"
+                    />
+                  </div>
+
+                  {alternatives.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setAlternatives(alternatives.filter((_, i) => i !== idx))}
+                      className="text-stone-400 hover:text-rose-500 p-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Add Option */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newAltName}
+                onChange={(e) => setNewAltName(e.target.value)}
+                placeholder="Add another path or option..."
+                className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-xs text-stone-900 dark:text-stone-100 outline-none focus:border-amber-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newAltName.trim()) {
+                    setAlternatives([
+                      ...alternatives,
+                      {
+                        id: crypto.randomUUID(),
+                        decision_id: '',
+                        name: newAltName.trim(),
+                        description: '',
+                        sort_order: alternatives.length,
+                        values: {},
+                        created_at: '',
+                        updated_at: '',
+                      },
+                    ]);
+                    setNewAltName('');
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-stone-100 dark:bg-white/5 hover:bg-stone-200 text-stone-800 dark:text-stone-200 flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Criteria / Guiding principles */}
+          <div className="space-y-4 pt-6 border-t border-stone-100 dark:border-white/5">
+            <div>
+              <h2 className="text-lg font-serif font-semibold text-stone-900 dark:text-stone-100">
+                What matters to you most?
+              </h2>
+              <p className="text-xs text-stone-400">
+                The principles and criteria against which you want to evaluate these options.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {criteria.map((crit, idx) => (
+                <div
+                  key={crit.id}
+                  className="p-4 rounded-xl border border-stone-200/80 dark:border-white/10 bg-stone-50/50 dark:bg-white/[0.02] flex items-center justify-between gap-4"
+                >
+                  <div className="space-y-1 flex-1">
+                    <input
+                      type="text"
+                      value={crit.name}
+                      onChange={(e) => {
+                        const copy = [...criteria];
+                        copy[idx].name = e.target.value;
+                        setCriteria(copy);
+                      }}
+                      className="w-full text-sm font-semibold bg-transparent border-0 outline-none text-stone-900 dark:text-stone-100"
+                    />
+                    <input
+                      type="text"
+                      value={crit.description || ''}
+                      placeholder="Why this matters..."
+                      onChange={(e) => {
+                        const copy = [...criteria];
+                        copy[idx].description = e.target.value;
+                        setCriteria(copy);
+                      }}
+                      className="w-full text-xs text-stone-500 dark:text-stone-400 bg-transparent border-0 outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-stone-400">{crit.weight}%</span>
+                    {criteria.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setCriteria(criteria.filter((_, i) => i !== idx))}
+                        className="text-stone-400 hover:text-rose-500 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Criterion */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newCritName}
+                onChange={(e) => setNewCritName(e.target.value)}
+                placeholder="Add another principle (e.g., commute time, financial impact)..."
+                className="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-transparent text-xs text-stone-900 dark:text-stone-100 outline-none focus:border-amber-500"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newCritName.trim()) {
+                    setCriteria([
+                      ...criteria,
+                      {
+                        id: crypto.randomUUID(),
+                        decision_id: '',
+                        name: newCritName.trim(),
+                        description: '',
+                        criterion_type: 'qualitative',
+                        direction: 'higher_better',
+                        weight: 25,
+                        sort_order: criteria.length,
+                        created_at: '',
+                        updated_at: '',
+                      },
+                    ]);
+                    setNewCritName('');
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-stone-100 dark:bg-white/5 hover:bg-stone-200 text-stone-800 dark:text-stone-200 flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-between pt-6 border-t border-stone-100 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-stone-200 dark:border-white/10 hover:bg-stone-100 dark:hover:bg-white/5 text-stone-700 dark:text-stone-300 transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCurrentStep(3)}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all cursor-pointer"
+            >
+              <span>Review</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
 
-      {/* STEP 3: Criteria & Weights */}
+      {/* STEP 3: Review & Begin Thinking */}
       {currentStep === 3 && (
-        <Card className="p-6 border-slate-200 dark:border-white/10">
-          <CriteriaEditor
-            criteria={criteria}
-            onChange={(updated) => setCriteria(updated)}
-          />
-        </Card>
-      )}
-
-      {/* STEP 4: Values Matrix */}
-      {currentStep === 4 && (
-        <Card className="p-6 border-slate-200 dark:border-white/10 space-y-4">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              Enter Criterion Values for Each Alternative
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Provide numeric or qualitative values for each option. You can mark any value as "Unknown" if you are uncertain—it will be evaluated transparently without being penalized as zero.
+        <div className="rounded-2xl p-6 sm:p-9 bg-white dark:bg-[#152226] border border-stone-200/80 dark:border-white/5 shadow-sm space-y-6">
+          <div className="space-y-1">
+            <h2 className="text-xl font-serif font-semibold text-stone-900 dark:text-stone-100">
+              Ready to think this through?
+            </h2>
+            <p className="text-xs text-stone-400">
+              Here is what you've framed. You can always refine these details as you think together.
             </p>
           </div>
-          <AlternativeEditor
-            alternatives={alternatives}
-            criteria={criteria}
-            onChange={(updated) => setAlternatives(updated)}
-          />
-        </Card>
+
+          <div className="p-5 rounded-xl bg-stone-50/60 dark:bg-white/[0.02] border border-stone-200/60 dark:border-white/5 space-y-4">
+            <div>
+              <span className="text-[10px] uppercase font-bold tracking-wider text-[#265347] dark:text-[#5EAD9C]">
+                {category}
+              </span>
+              <h3 className="text-base font-serif font-semibold text-stone-900 dark:text-stone-100 mt-1">
+                {title}
+              </h3>
+              {description && (
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
+                  {description}
+                </p>
+              )}
+            </div>
+
+            {desiredOutcome && (
+              <div className="text-xs text-stone-600 dark:text-stone-300 pt-2 border-t border-stone-200/50 dark:border-white/5">
+                <span className="font-semibold">Desired outcome: </span>
+                {desiredOutcome}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-stone-200/50 dark:border-white/5 space-y-2">
+              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                Options being weighed:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {alternatives.map((alt) => (
+                  <span
+                    key={alt.id}
+                    className="px-3 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20 text-xs font-medium text-amber-900 dark:text-amber-300"
+                  >
+                    {alt.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-stone-200/50 dark:border-white/5 space-y-2">
+              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+                Guiding criteria:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {criteria.map((c) => (
+                  <span
+                    key={c.id}
+                    className="px-3 py-1 rounded-lg bg-stone-100 dark:bg-white/5 text-xs text-stone-600 dark:text-stone-400"
+                  >
+                    {c.name} ({c.weight}%)
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center justify-between pt-6 border-t border-stone-100 dark:border-white/5">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(2)}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium border border-stone-200 dark:border-white/10 hover:bg-stone-100 dark:hover:bg-white/5 text-stone-700 dark:text-stone-300 transition-all cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={handleSaveDecision}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{isSaving ? 'Opening workspace...' : 'Help me think about it'}</span>
+            </button>
+          </div>
+        </div>
       )}
-
-      {/* STEP 5: Context Selection & Consent */}
-      {currentStep === 5 && savedDecisionId && (
-        <Card className="p-6 border-slate-200 dark:border-white/10">
-          <ContextPicker
-            decisionId={savedDecisionId}
-            onConfirm={handleContextConfirmedAndAnalyze}
-            isLoading={isSaving}
-          />
-        </Card>
-      )}
-
-      {/* Wizard Footer Navigation Controls */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-white/10">
-        <Button
-          variant="outline"
-          disabled={currentStep === 1 || isSaving}
-          onClick={() => setCurrentStep((prev) => prev - 1)}
-          icon={<ArrowLeft className="w-4 h-4" />}
-        >
-          Previous
-        </Button>
-
-        {currentStep < 5 ? (
-          <Button
-            variant="primary"
-            onClick={handleNext}
-            isLoading={isSaving}
-            icon={<ArrowRight className="w-4 h-4" />}
-          >
-            {currentStep === 4 ? 'Confirm & Proceed to Context' : 'Next Step'}
-          </Button>
-        ) : null}
-      </div>
     </div>
   );
 };

@@ -1,164 +1,167 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Compass, ArrowRight, Shield, Heart, Sparkles } from 'lucide-react';
-import { Button } from '../components/ui/Button.js';
+import { Compass, ArrowRight, ShieldCheck, CheckSquare, Heart } from 'lucide-react';
 import { ThemeToggle } from '../components/layout/ThemeToggle.js';
 import { useAuth } from '../context/AuthContext.js';
 
 export const LandingPage: React.FC = () => {
-  const { user, demoLogin } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleDemo = async () => {
-    try {
-      await demoLogin();
-      navigate('/app');
-    } catch {
-      navigate('/auth/sign-in');
-    }
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-[#0c1017] text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      {/* Quiet Top Navigation */}
-      <header className="w-full border-b border-slate-100 dark:border-white/5 py-4 px-6 sm:px-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 shadow-sm">
-              <Compass className="w-4 h-4" />
+    <div className="min-h-screen flex flex-col bg-[#F8F5EF] dark:bg-[#0F171A] text-stone-900 dark:text-stone-100 transition-colors duration-200">
+      {/* Top Navigation */}
+      <header className="w-full py-5 px-6 sm:px-12">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center text-stone-900 font-bold text-sm shadow-sm">
+              D
             </div>
-            <span className="font-semibold text-base tracking-tight text-slate-900 dark:text-white">
+            <span className="font-semibold text-base tracking-tight text-stone-900 dark:text-stone-100">
               Decisionly
             </span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
             <ThemeToggle />
             {user ? (
-              <Button
-                variant="primary"
-                size="sm"
+              <button
                 onClick={() => navigate('/app')}
-                icon={<ArrowRight className="w-4 h-4" />}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all"
               >
-                Go to Dashboard
-              </Button>
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             ) : (
               <>
                 <Link
                   to="/auth/sign-in"
-                  className="text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2.5 py-1.5 transition-colors"
+                  className="text-xs sm:text-sm font-medium text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white px-3 py-1.5 transition-colors"
                 >
-                  Log In
+                  Sign in
                 </Link>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => navigate('/auth/sign-up')}
+                <Link
+                  to="/auth/sign-up"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all"
                 >
-                  Sign Up
-                </Button>
+                  <span>Create account</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </>
             )}
           </div>
         </div>
       </header>
 
-      {/* Main Calm Hero */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-16 sm:py-24 text-center">
-        <div className="max-w-2xl mx-auto space-y-6">
-          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
-            A quiet place to think through what's on your mind.
-          </h1>
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col justify-center px-6 sm:px-12 py-10 lg:py-16">
+        <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+          {/* Left Column */}
+          <div className="lg:col-span-7 space-y-6 text-left">
+            <div className="text-[11px] sm:text-xs font-semibold tracking-[0.2em] uppercase text-[#265347] dark:text-[#5EAD9C]">
+              A private place for the in-between
+            </div>
 
-          <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 font-normal leading-relaxed max-w-xl mx-auto">
-            When a life choice feels tangled or overwhelming, talk it through here.
-            No noisy dashboards, no robotic formulas—just honest, calm clarity to help you find your next step.
-          </p>
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif font-normal tracking-tight leading-[1.06] text-stone-900 dark:text-stone-100">
+              Your life is not<br />
+              a<br />
+              <span className="text-[#265347] dark:text-[#5EAD9C]">spreadsheet.</span>
+            </h1>
 
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-            {user ? (
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => navigate('/app')}
-                icon={<ArrowRight className="w-4 h-4" />}
-                className="px-6 py-3 text-sm font-medium rounded-xl"
+            <p className="text-base sm:text-lg text-stone-600 dark:text-stone-300 leading-relaxed max-w-lg">
+              Decisionly gives complicated choices the time, context, and honesty they deserve. Compare what matters to you — without handing over the steering wheel.
+            </p>
+
+            <div className="pt-2 flex flex-wrap items-center gap-3.5">
+              <button
+                onClick={() => navigate(user ? '/app/decisions/new' : '/auth/sign-up')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all cursor-pointer"
               >
-                Go to Dashboard
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => navigate('/auth/sign-up')}
-                  icon={<ArrowRight className="w-4 h-4" />}
-                  className="px-6 py-3 text-sm font-medium rounded-xl w-full sm:w-auto"
-                >
-                  Start Thinking It Through
-                </Button>
+                <span>Start a decision</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => navigate(user ? '/app' : '/auth/sign-in')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium border border-stone-300 dark:border-white/15 hover:bg-stone-200/50 dark:hover:bg-white/5 text-stone-700 dark:text-stone-300 transition-all cursor-pointer"
+              >
+                <span>See your space</span>
+              </button>
+            </div>
 
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={handleDemo}
-                  className="px-5 py-3 text-sm font-medium rounded-xl w-full sm:w-auto"
-                >
-                  Explore Demo
-                </Button>
-              </>
-            )}
+            <div className="pt-2">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-stone-300/80 dark:border-white/10 bg-white/70 dark:bg-white/[0.03] text-xs text-stone-600 dark:text-stone-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#265347] dark:text-[#5EAD9C]" />
+                <span>Your choices stay in your browser, on this device.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (Floating Quote Card) */}
+          <div className="lg:col-span-5 relative mt-4 lg:mt-0">
+            {/* Offset backdrop shadow card */}
+            <div className="absolute inset-0 bg-[#F4DEB8]/70 dark:bg-amber-500/10 rounded-2xl translate-x-3 translate-y-3 pointer-events-none" />
+
+            {/* Front Card */}
+            <div className="relative rounded-2xl p-7 sm:p-9 bg-white dark:bg-[#152226] border border-stone-200/80 dark:border-white/10 shadow-sm space-y-4">
+              <div className="text-amber-500 text-3xl font-serif leading-none select-none">
+                “
+              </div>
+              <h2 className="text-xl sm:text-2xl font-serif font-medium text-stone-900 dark:text-stone-100 leading-snug">
+                Decisionly helps you think it through.<br />
+                You make the final choice.
+              </h2>
+              <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed pt-3 border-t border-stone-100 dark:border-white/5">
+                There is no score telling you who to become.<br />
+                Just a clearer view of what you already know.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Example Prompt Showcase */}
-        <div className="mt-14 max-w-xl w-full mx-auto p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/10 text-left space-y-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            What people bring here
-          </span>
-          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
-            "I'm thinking about taking admission in a private college, but most of the good ones are far from me. I'm not sure if travelling that far is worth it."
-          </p>
+        {/* 3 Bottom Columns (Picture 4) */}
+        <div className="max-w-6xl mx-auto w-full pt-16 sm:pt-24 pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+            {/* Col 1 */}
+            <div className="border-t border-[#265347]/40 dark:border-[#5EAD9C]/40 pt-5 space-y-2.5">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[#265347] dark:text-[#5EAD9C]">
+                <Compass className="w-4 h-4" />
+              </div>
+              <h3 className="text-base sm:text-lg font-serif font-semibold text-stone-900 dark:text-stone-100">
+                Hold the whole picture
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                Name the situation, the pull in each direction, and the outcome you hope to protect.
+              </p>
+            </div>
+
+            {/* Col 2 */}
+            <div className="border-t border-[#265347]/40 dark:border-[#5EAD9C]/40 pt-5 space-y-2.5">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[#265347] dark:text-[#5EAD9C]">
+                <CheckSquare className="w-4 h-4" />
+              </div>
+              <h3 className="text-base sm:text-lg font-serif font-semibold text-stone-900 dark:text-stone-100">
+                Compare what matters
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                Set your own criteria. Give them weight. Notice which option keeps showing up with quiet consistency.
+              </p>
+            </div>
+
+            {/* Col 3 */}
+            <div className="border-t border-[#265347]/40 dark:border-[#5EAD9C]/40 pt-5 space-y-2.5">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center text-[#265347] dark:text-[#5EAD9C]">
+                <Heart className="w-4 h-4" />
+              </div>
+              <h3 className="text-base sm:text-lg font-serif font-semibold text-stone-900 dark:text-stone-100">
+                Bring your context
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
+                Your values, constraints, and rhythms belong in the room — not as an afterthought.
+              </p>
+            </div>
+          </div>
         </div>
       </main>
-
-      {/* Supporting Quiet Notes at Bottom */}
-      <footer className="border-t border-slate-100 dark:border-white/5 py-10 px-6 sm:px-10">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left text-xs text-slate-500 dark:text-slate-400">
-          <div className="space-y-1">
-            <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-slate-400" /> Private & Personal
-            </h4>
-            <p className="text-[11px] leading-relaxed">
-              Your thoughts, memories, and dilemmas are strictly yours. Never sold or shared.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-1.5">
-              <Heart className="w-3.5 h-3.5 text-slate-400" /> Like a Thoughtful Friend
-            </h4>
-            <p className="text-[11px] leading-relaxed">
-              A gentle sounding board that listens to what actually matters to your everyday life.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-1.5">
-              <Compass className="w-3.5 h-3.5 text-slate-400" /> Always Your Call
-            </h4>
-            <p className="text-[11px] leading-relaxed">
-              No pressure and no automated orders. You stay in the driver's seat.
-            </p>
-          </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-400">
-          <span>Decisionly</span>
-          <span>A quiet space to think clearly.</span>
-        </div>
-      </footer>
     </div>
   );
 };

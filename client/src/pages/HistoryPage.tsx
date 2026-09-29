@@ -1,21 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  History,
   Search,
-  Filter,
-  Calendar,
-  CheckCircle2,
-  Sparkles,
-  ArrowRight,
+  Plus,
+  ChevronRight,
   FolderOpen,
 } from 'lucide-react';
 import { Decision } from '@shared/types/index.js';
-import { TARGET_CATEGORIES, TargetCategory } from '@shared/constants/categories.js';
 import { api } from '../lib/api.js';
-import { Card } from '../components/ui/Card.js';
-import { Badge } from '../components/ui/Badge.js';
-import { Button } from '../components/ui/Button.js';
 
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,15 +16,12 @@ export const HistoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [showArchived, setShowArchived] = useState(false);
 
   const loadHistory = async () => {
     try {
       setLoading(true);
-      let query = `/api/decisions?includeArchived=${showArchived}`;
+      let query = `/api/decisions?limit=50`;
       if (selectedCategory !== 'all') query += `&category=${encodeURIComponent(selectedCategory)}`;
-      if (selectedStatus !== 'all') query += `&status=${encodeURIComponent(selectedStatus)}`;
       if (search.trim()) query += `&search=${encodeURIComponent(search.trim())}`;
 
       const res = await api.get<{ items: Decision[]; total: number }>(query);
@@ -49,164 +38,123 @@ export const HistoryPage: React.FC = () => {
       loadHistory();
     }, 200);
     return () => clearTimeout(timer);
-  }, [search, selectedCategory, selectedStatus, showArchived]);
+  }, [search, selectedCategory]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-up max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <History className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Decision History
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Revisit past analyses, review outcomes, and track how your life choices evolved over time.
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="space-y-1.5">
+          <p className="text-[10px] sm:text-xs font-semibold tracking-[0.2em] uppercase text-[#265347] dark:text-[#5EAD9C]">
+            PAST INQUIRIES
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-serif font-normal text-stone-900 dark:text-stone-100">
+            Decision History
+          </h1>
+          <p className="text-xs sm:text-sm text-stone-500 dark:text-stone-400">
+            All the questions you've explored, framed, and reflected on.
           </p>
         </div>
 
-        <Button
-          variant="primary"
+        <button
           onClick={() => navigate('/app/decisions/new')}
-          icon={<Sparkles className="w-4 h-4" />}
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-semibold text-sm bg-amber-500 hover:bg-amber-600 text-stone-900 shadow-sm transition-all cursor-pointer self-start sm:self-auto"
         >
-          New Decision
-        </Button>
+          <Plus className="w-4 h-4 font-bold" />
+          <span>New decision</span>
+        </button>
       </div>
 
-      {/* Filters & Search */}
-      <Card className="p-4 border-slate-200 dark:border-white/10 space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            <input
-              type="text"
-              placeholder="Search by title or description..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-[#090d16] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-brand-500"
-            />
-          </div>
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search questions or details..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-[#152226] text-xs sm:text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-amber-500 transition-all"
+          />
+        </div>
 
-          {/* Category Filter */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="text-xs px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#090d16] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none"
+            className="px-3 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 bg-white dark:bg-[#152226] text-xs text-stone-700 dark:text-stone-300 outline-none focus:border-amber-500 transition-all cursor-pointer w-full sm:w-auto"
           >
-            <option value="all">All Domains ({TARGET_CATEGORIES.length})</option>
-            {TARGET_CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
+            <option value="all">All Domains</option>
+            <option value="Career">Career</option>
+            <option value="Personal">Personal</option>
+            <option value="Financial">Financial</option>
+            <option value="Relocation">Relocation</option>
+            <option value="Health">Health</option>
+            <option value="Travel">Travel</option>
           </select>
+        </div>
+      </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="flex-1 text-xs px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#090d16] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white outline-none"
-            >
-              <option value="all">All Statuses</option>
-              <option value="draft">Draft</option>
-              <option value="ready">Ready</option>
-              <option value="analyzed">Analyzed</option>
-            </select>
-
-            <button
-              onClick={() => setShowArchived(!showArchived)}
-              className={`px-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
-                showArchived
-                  ? 'bg-amber-500/10 border-amber-500 text-amber-600 dark:text-amber-400'
-                  : 'bg-slate-50 dark:bg-[#090d16] border-slate-200 dark:border-white/10 text-slate-500'
-              }`}
-            >
-              Archived
-            </button>
+      {/* Decision Cards List */}
+      <div className="rounded-2xl bg-white dark:bg-[#152226] border border-stone-200/80 dark:border-white/5 p-6 sm:p-7 shadow-sm">
+        {loading ? (
+          <div className="py-12 text-center text-xs text-stone-400">
+            Loading decisions...
           </div>
-        </div>
-      </Card>
-
-      {/* Decisions List */}
-      {loading ? (
-        <div className="py-12 text-center text-xs text-slate-500">
-          Loading decision history...
-        </div>
-      ) : decisions.length === 0 ? (
-        <Card className="p-8 text-center space-y-3 border-dashed">
-          <FolderOpen className="w-8 h-8 mx-auto text-slate-400" />
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-              No matching decisions found
-            </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Try adjusting your search filters or start a new decision analysis.
+        ) : decisions.length === 0 ? (
+          <div className="py-12 text-center space-y-3">
+            <FolderOpen className="w-8 h-8 mx-auto text-stone-400" />
+            <p className="text-xs text-stone-400">
+              No decisions found matching your filter.
             </p>
           </div>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {decisions.map((decision) => (
-            <Card
-              key={decision.id}
-              onClick={() => navigate(`/app/decisions/${decision.id}`)}
-              className="p-5 border-slate-200 dark:border-white/10 hover:border-brand-500/40 cursor-pointer transition-all glow-card"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1.5 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge category={decision.category}>{decision.category}</Badge>
-                    <Badge
-                      variant={
-                        decision.status === 'analyzed'
-                          ? 'brand'
-                          : decision.status === 'ready'
-                          ? 'success'
-                          : 'slate'
-                      }
-                      size="sm"
-                    >
-                      {decision.status}
-                    </Badge>
-                    {decision.chosen_alternative_id && (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Outcome Logged
+        ) : (
+          <div className="divide-y divide-stone-100 dark:divide-white/5">
+            {decisions.map((decision) => {
+              const isComplete = decision.status === 'decided';
+              const formattedDate = new Date(decision.updated_at || Date.now()).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              });
+
+              return (
+                <div
+                  key={decision.id}
+                  onClick={() => navigate(`/app/decisions/${decision.id}`)}
+                  className="group py-4 flex items-center justify-between gap-4 cursor-pointer transition-colors"
+                >
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-stone-900 dark:text-stone-100 group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors truncate">
+                      {decision.title}
+                    </h3>
+                    {decision.description && (
+                      <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-1">
+                        {decision.description}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-stone-400 dark:text-stone-500">
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                          isComplete
+                            ? 'bg-[#DDF5EC] text-[#12644F] dark:bg-[#183932] dark:text-[#4FD1A5]'
+                            : 'bg-[#FFF3D6] text-[#8C6010] dark:bg-[#382E19] dark:text-[#E8B75B]'
+                        }`}
+                      >
+                        {isComplete ? 'complete' : 'in progress'}
                       </span>
-                    )}
+                      <span>{decision.category || 'General'}</span>
+                      <span>Updated {formattedDate}</span>
+                    </div>
                   </div>
 
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    {decision.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                    {decision.description}
-                  </p>
+                  <ChevronRight className="w-4 h-4 text-stone-400 group-hover:text-stone-700 dark:group-hover:text-stone-200 group-hover:translate-x-0.5 transition-all shrink-0" />
                 </div>
-
-                <div className="flex items-center gap-4 text-xs text-slate-400 shrink-0 self-end sm:self-center">
-                  <div className="text-right space-y-0.5 text-[11px]">
-                    {decision.deadline && (
-                      <div className="flex items-center gap-1 justify-end text-slate-600 dark:text-slate-300">
-                        <Calendar className="w-3 h-3" />
-                        <span>Deadline: {decision.deadline}</span>
-                      </div>
-                    )}
-                    <div>Updated {new Date(decision.updated_at).toLocaleDateString()}</div>
-                  </div>
-                  <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
