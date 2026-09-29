@@ -1,105 +1,94 @@
 # Decisionly 🧭
-> **A thoughtful, context-aware decision intelligence platform designed to help you think through life and career crossroads like a wise friend.**
+> **Like thinking through tough choices with a smart, caring friend who also does the math.**
+
+Making big life choices—switching jobs, moving cities, or changing careers—is exhausting. You're overwhelmed by opinions, trapped in endless pros-and-cons lists, or getting generic advice from chatbots that don't know your real life.
+
+**Decisionly** changes that. It listens to what’s stressing you out, helps you figure out what actually matters, and gives you an honest, clear recommendation grounded in your everyday reality.
 
 ---
 
-## 📌 Problem Statement
+## 💭 The Problem: Why Big Decisions Are Hard
 
-Every day, people face high-stakes life decisions—such as changing careers, relocating, balancing relationships, or making major purchases. 
-Traditional approaches fall short:
-- **Decision Paralysis & Cognitive Overload**: Pros-and-cons lists fail to capture nuanced weights, personal values, and everyday trade-offs.
-- **Generic AI Hallucinations**: Standard chatbots offer surface-level advice with generic summaries, ignoring individual personal context, daily constraints, and mathematical objectivity.
-- **Lack of Transparency**: Most tools either force rigid spreadsheets without intuition or black-box AI responses without verifiable reasoning.
+- **Overthinking & Decision Paralysis**: When everything feels important, you freeze. Standard pros-and-cons lists treat "saves $50 a month" and "I’ll never see my family" like equal bullet points.
+- **Chatbots Give Bland Answers**: Most AI tools reply with generic platitudes like *"it depends on your personal priorities"*, without taking a stance or remembering your daily constraints.
+- **Spreadsheets Lack Soul**: Ranking options on a spreadsheet feels robotic and misses how a decision actually feels to live with day-to-day.
 
 ---
 
-## 💡 Solution
+## 💡 The Solution: How Decisionly Helps
 
-**Decisionly** bridges human empathy with structured decision science:
-1. **Conversational "Think Together" Interface**: Instead of cold data tables, Decisionly speaks like an honest, trusted friend—reflecting back what it hears, asking clarifying questions, and pinpointing core tensions.
-2. **Deterministic Mathematical Grounding**: Multi-Attribute Utility Theory (MAUT) computes objective scores, normalized weights, and rank orders without LLM hallucinations.
-3. **Multi-Model Intelligence with Automatic Fallback**:
-   - **Primary**: Google Gemini 2.5 Flash (`gemini-2.5-flash`)
-   - **Secondary**: Groq Llama 3 / GPT-OSS (`openai/gpt-oss-120b`)
-   - **Tertiary**: Local Zero-Failure Deterministic Engine
-4. **Voice-First Input**: Integrated AssemblyAI speech-to-text allowing users to speak their reflections freely.
-5. **Private Personal Context Space**: Stores persistent values, goals, and constraints with strict consent gating—no context is ever used without your explicit approval.
+Decisionly combines **human empathy** with **smart decision science**:
+
+1. **It Listens Like a Friend**: Instead of cold charts, Decisionly reflects back what it hears: *"It sounds like the higher salary is exciting, but being far from family is what's really keeping you up at night."*
+2. **Asks the Right Questions**: Gives you 2–3 thought-provoking questions to help untangle your thoughts.
+3. **Interactive Priority Pills**: Click on what matters most right now (e.g. *Career Growth*, *Family*, *Peace of Mind*) to immediately reshape the recommendation.
+4. **Honest, Unfiltered Verdict**: Tells you plainly which option makes the most sense, points out the key trade-off, and suggests a concrete next step.
+5. **Private & Safe**: Your background notes and personal constraints are stored safely on your machine and only used when you explicitly say so.
 
 ---
 
-## ✨ Features
+## ✨ What You Can Do
 
-- **Warm Editorial UI**: Curated warm cream `#F5F0E8` palette, forest green accents, Playfair Display typography, and fluid responsive design (Light & Dark modes).
-- **Interactive Decision Workspace**:
-  - **What I'm Hearing**: Empathic summary of the core dilemma.
-  - **Questions to Ask Yourself**: Numbered thought prompts tailored to the situation.
-  - **Selectable Priority Pills**: Interactive value tags (*"Career Growth"*, *"Family & Friends"*, *"Daily Comfort"*) with micro-animations.
-  - **My Honest Suggestion**: Actionable bottom-line verdict with key trade-offs and concrete next steps.
-  - **Deeper Breakdown**: Per-option advantages/drawbacks, risk likelihoods, and follow-up considerations.
-  - **Optional Technical Matrix**: Mathematical comparison table for users who want raw scores.
-- **Voice Dictation**: One-click microphone recording powered by AssemblyAI and Web Speech API.
-- **Personal Space**: Persistent catalog of personal principles, constraints, and long-term goals.
-- **Instant Demo Account**: 1-click sandbox access to explore pre-loaded sample decisions instantly.
+- 🎙️ **Speak Your Mind**: Too tired to type? Hit the microphone button to dictate your thoughts naturally.
+- 🎯 **Choose What Matters**: Weigh salary, commute, daily peace, or long-term growth with simple sliders and tags.
+- ⚖️ **See the Real Trade-Offs**: Clear breakdown of pros, cons, and hidden risks for each option.
+- 📊 **Optional Deep Dive**: Expand the comparison matrix if you want to see the underlying scores and numbers.
+- 🌿 **Warm, Calming Design**: Designed with soothing cream and forest green tones to calm decision anxiety—day or night.
 
 ---
 
-## 🛠 Tech Stack
+## ⚡ Quick Start (Run Locally in 2 Minutes)
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS, Lucide Icons, Vite
-- **Backend**: Node.js, Express, TypeScript, tsx
-- **AI & Speech**:
-  - Google Gemini API (`gemini-2.5-flash`)
-  - Groq SDK (`openai/gpt-oss-120b`)
-  - AssemblyAI (Voice Transcription)
-- **Validation & State**: Zod schema validation, local persistent JSON store
-
----
-
-## 🚀 Installation Guide
-
-### Prerequisites
-- Node.js (v18 or higher recommended)
-- npm or yarn
-
-### 1. Clone the Repository
+### 1. Get the Code
 ```bash
 git clone https://github.com/AmishaOnMain/Decisionly.git
 cd Decisionly
 ```
 
-### 2. Install Dependencies
+### 2. Install Packages
 ```bash
 npm install
 ```
 
-### 3. Environment Configuration
-Create a `.env` file in the project root:
+### 3. Add Your Keys
+Create a file named `.env` in the root folder with:
 ```env
 PORT=3000
-NODE_ENV=development
 
-# Google Gemini API (Primary Engine)
-GEMINI_API_KEY=your_gemini_api_key
+# Google Gemini (for deep thinking)
+GEMINI_API_KEY=your_gemini_key
 GEMINI_MODEL=gemini-2.5-flash
 
-# Groq API (Secondary Fallback Engine)
-GROQ_API_KEY=your_groq_api_key
+# Groq (instant fallback)
+GROQ_API_KEY=your_groq_key
 GROQ_MODEL=openai/gpt-oss-120b
 
-# AssemblyAI (Voice Dictation)
-ASSEMBLYAI_API_KEY=your_assemblyai_api_key
+# AssemblyAI (for voice dictation)
+ASSEMBLYAI_API_KEY=your_assemblyai_key
 
-# Security & Session
-SESSION_SECRET=your_random_secret_string
+SESSION_SECRET=super_secret_key_123
 ```
 
-### 4. Run the Development Server
+### 4. Start the App
 ```bash
 npm run dev
 ```
 
-- **Frontend**: `http://localhost:5173`
-- **Backend API**: `http://localhost:3000`
+Open **[http://localhost:5173](http://localhost:5173)** in your browser.
 
-### 5. Instant Exploration
-Navigate to `http://localhost:5173`, click **Sign in**, and choose **"Use Instant Demo Space"** to test immediately without manual setup.
+> **Tip**: Click **"Use Instant Demo Space"** on the sign-in screen to try it immediately with realistic sample dilemmas!
+
+---
+
+## 🧰 How It's Built
+
+- **Frontend**: React, TypeScript, Tailwind CSS, Lucide Icons, Vite
+- **Backend**: Node.js, Express, TypeScript
+- **AI Brain**: Google Gemini 2.5 Flash + Groq backup
+- **Voice**: AssemblyAI Speech-to-Text
+- **Data**: Lightweight local storage (no heavy database setup required)
+
+---
+
+## 💌 Made For
+Anyone standing at a crossroads who just needs clarity, calm, and a grounded path forward.
