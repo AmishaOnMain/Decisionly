@@ -1,294 +1,199 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  PlusCircle,
-  FolderLock,
-  History,
-  Sparkles,
-  ArrowRight,
-  Clock,
-  CheckCircle2,
-  Calendar,
-  AlertCircle,
-  FileText,
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight, Sparkles, Clock, MessageSquare, Plus, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { api } from '../lib/api.js';
-import { Decision, PersonalContextEntry } from '@shared/types/index.js';
-import { Card } from '../components/ui/Card.js';
-import { Button } from '../components/ui/Button.js';
-import { Badge } from '../components/ui/Badge.js';
+import { Decision } from '@shared/types/index.js';
+import { VoiceDictationButton } from '../components/ui/VoiceDictationButton.js';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [inputThought, setInputThought] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [decisions, setDecisions] = useState<Decision[]>([]);
-  const [contextEntries, setContextEntries] = useState<PersonalContextEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Time-aware warm greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
+  const displayName = user?.display_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there';
+
   useEffect(() => {
-    async function loadDashboardData() {
+    async function loadRecentDecisions() {
       try {
         setLoading(true);
-        const [decRes, ctxRes] = await Promise.all([
-          api.get<{ items: Decision[]; total: number }>('/api/decisions?limit=6'),
-          api.get<{ items: PersonalContextEntry[] }>('/api/personal-context'),
-        ]);
-        setDecisions(decRes.items || []);
-        setContextEntries(ctxRes.items || []);
+        const res = await api.get<{ items: Decision[] }>('/api/decisions?limit=8');
+        setDecisions(res.items || []);
       } catch (err) {
-        console.error('Failed to load dashboard data:', err);
+        console.error('Failed to load recent thoughts:', err);
       } finally {
         setLoading(false);
       }
     }
-    loadDashboardData();
+    loadRecentDecisions();
   }, []);
 
-  const analyzedCount = decisions.filter((d) => d.status === 'analyzed').length;
-  const outcomeCount = decisions.filter((d) => d.chosen_alternative_id).length;
-  const activeGoals = contextEntries.filter((c) => c.entry_type === 'goal' && !c.archived_at);
-  const reviewDueCount = contextEntries.filter(
-    (c) => c.review_at && new Date(c.review_at) <= new Date() && !c.archived_at
-  ).length;
+  const handleStartThinking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = inputThought.trim();
+    if (!trimmed) return;
+
+    setIsSubmitting(true);
+    try {
+      // Derive a gentle title from the first sentence or first few words
+      const firstSentence = trimmed.split(/[.?!]/)[0] || trimmed;
+      const title = firstSentence.length > 50
+        ? firstSentence.slice(0, 48) + '...'
+        : firstSentence;
+
+      // 1. Create decision
+      const createRes = await api.post<{ decision: Decision }>('/api/decisions', {
+        title: title || 'Something on my mind',
+        description: trimmed,
+        category: 'Custom',
+      });
+
+      const newDecision = createRes.decision;
+
+      // 2. Seed basic starting options so thinking can begin immediately
+      await api.post(`/api/decisions/${newDecision.id}/alternatives`, {
+        alternatives: [
+          {
+            name: 'Lean towards taking it',
+            description: 'Go ahead with this choice and adapt along the way',
+            values: {},
+          },
+          {
+            name: 'Hold back or find an alternative',
+            description: 'Protect your peace of mind and look for closer/different options',
+            values: {},
+          },
+        ],
+      });
+
+      // 3. Immediately open the conversational decision thinking space
+      navigate(`/app/decisions/${newDecision.id}`);
+    } catch (err: any) {
+      alert(err?.message || 'Could not start thinking through this right now.');
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Welcome & Primary CTA Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-brand-900/40 via-indigo-900/30 to-slate-900/60 dark:from-brand-950/80 dark:via-indigo-950/60 dark:to-[#111827] border border-brand-500/20 shadow-lg">
-        <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-xs font-semibold text-brand-600 dark:text-brand-300">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Decision Intelligence Workspace</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Welcome back, {user?.display_name || user?.email?.split('@')[0]}
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
-            You have {decisions.length} decision records and {contextEntries.length} verified personal context factors ready to evaluate.
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={() => navigate('/app/decisions/new')}
-          icon={<PlusCircle className="w-5 h-5" />}
-          className="shadow-glow-brand shrink-0"
-        >
-          New Decision
-        </Button>
+    <div className="max-w-2xl mx-auto py-8 sm:py-14 px-4 space-y-12">
+      {/* 1. Calm, Human Greeting */}
+      <div className="space-y-2">
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">
+          {getGreeting()}, {displayName}.
+        </h1>
+        <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 font-normal">
+          What are you trying to figure out today?
+        </p>
       </div>
 
-      {/* Stats Quick Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="p-4 border-slate-200 dark:border-white/10 space-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Total Decisions
-          </span>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            {decisions.length}
-          </div>
-        </Card>
+      {/* 2. ONE LARGE, SIMPLE INPUT */}
+      <form onSubmit={handleStartThinking} className="space-y-4">
+        <div className="relative rounded-2xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 shadow-sm focus-within:border-slate-400 dark:focus-within:border-white/30 focus-within:shadow-md transition-all">
+          <textarea
+            rows={5}
+            value={inputThought}
+            onChange={(e) => setInputThought(e.target.value)}
+            placeholder="Tell me what's going on…"
+            className="w-full p-4 sm:p-5 text-sm sm:text-base bg-transparent border-0 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none leading-relaxed"
+            disabled={isSubmitting}
+            autoFocus
+          />
 
-        <Card className="p-4 border-slate-200 dark:border-white/10 space-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Analyzed
-          </span>
-          <div className="text-2xl font-black text-brand-600 dark:text-brand-400">
-            {analyzedCount}
-          </div>
-        </Card>
-
-        <Card className="p-4 border-slate-200 dark:border-white/10 space-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Outcomes Logged
-          </span>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            {outcomeCount}
-          </div>
-        </Card>
-
-        <Card className="p-4 border-slate-200 dark:border-white/10 space-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Personal Space
-          </span>
-          <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 flex items-center justify-between">
-            <span>{contextEntries.length}</span>
-            {reviewDueCount > 0 && (
-              <span className="text-[10px] text-amber-500 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full">
-                {reviewDueCount} review due
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:px-4 sm:pb-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02] rounded-b-2xl">
+            <div className="flex items-center gap-2">
+              <VoiceDictationButton
+                onTranscript={(transcript) => {
+                  setInputThought((prev) => (prev ? prev + ' ' + transcript : transcript));
+                }}
+              />
+              <span className="text-[11px] text-slate-400 italic hidden sm:inline">
+                Tap mic to dictate or write your choice above
               </span>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Main Grid: Recent Decisions & Active Goals */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Recent Decisions (2 cols) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Recent Decisions
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Your current dilemmas, comparisons, and outcome histories.
-              </p>
             </div>
-            <Link
-              to="/app/history"
-              className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
+
+            <button
+              type="submit"
+              disabled={isSubmitting || !inputThought.trim()}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm text-white bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-all disabled:opacity-40 disabled:pointer-events-none self-end"
             >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+              {isSubmitting ? (
+                <span>Thinking with you...</span>
+              ) : (
+                <>
+                  <span>Help me think about it</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
           </div>
+        </div>
+      </form>
 
-          {loading ? (
-            <div className="p-8 text-center text-xs text-slate-500">Loading decisions...</div>
-          ) : decisions.length === 0 ? (
-            <Card className="p-8 text-center space-y-3 border-dashed border-slate-300 dark:border-white/10">
-              <FileText className="w-8 h-8 mx-auto text-slate-400" />
-              <div className="space-y-1">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white">
-                  No decisions created yet
-                </h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Start your first decision comparison to structure alternatives, criteria, and personal context.
-                </p>
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => navigate('/app/decisions/new')}
-                icon={<PlusCircle className="w-4 h-4" />}
-              >
-                Create First Decision
-              </Button>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {decisions.slice(0, 5).map((decision) => (
-                <Card
-                  key={decision.id}
-                  onClick={() => navigate(`/app/decisions/${decision.id}`)}
-                  className="p-4 border-slate-200 dark:border-white/10 hover:border-brand-500/40 cursor-pointer transition-all glow-card"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1.5 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge category={decision.category} size="sm">
-                          {decision.category}
-                        </Badge>
-                        <Badge
-                          variant={
-                            decision.status === 'analyzed'
-                              ? 'brand'
-                              : decision.status === 'ready'
-                              ? 'success'
-                              : 'slate'
-                          }
-                          size="sm"
-                        >
-                          {decision.status}
-                        </Badge>
-                        {decision.chosen_alternative_id && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Outcome Recorded
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                        {decision.title}
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
-                        {decision.description}
-                      </p>
-                    </div>
-
-                    <div className="text-right text-[11px] text-slate-400 shrink-0 space-y-1">
-                      {decision.deadline && (
-                        <div className="flex items-center gap-1 justify-end text-slate-600 dark:text-slate-300">
-                          <Calendar className="w-3 h-3" />
-                          <span>Due {decision.deadline}</span>
-                        </div>
-                      )}
-                      <div>Updated {new Date(decision.updated_at).toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+      {/* 3. LIGHTWEIGHT RECENT THOUGHTS */}
+      <div className="space-y-3 pt-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Things you've been figuring out
+          </h2>
+          {decisions.length > 0 && (
+            <span className="text-[11px] text-slate-400">
+              {decisions.length} {decisions.length === 1 ? 'thought' : 'thoughts'}
+            </span>
           )}
         </div>
 
-        {/* Right Column: Active Goals & Personal Space Spotlight */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Personal Space
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Your standing goals and boundaries.
-              </p>
-            </div>
-            <Link
-              to="/app/personal-space"
-              className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline"
-            >
-              Manage
-            </Link>
+        {loading ? (
+          <div className="py-6 text-xs text-slate-400 text-center">
+            Loading your notes...
           </div>
-
-          <Card className="p-4 border-slate-200 dark:border-white/10 space-y-3">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <span>Active Goals ({activeGoals.length})</span>
-              <Link
-                to="/app/personal-space/new"
-                className="text-brand-600 dark:text-brand-400 hover:underline text-[11px]"
+        ) : decisions.length === 0 ? (
+          <div className="p-6 rounded-2xl bg-slate-50/60 dark:bg-white/[0.02] border border-dashed border-slate-200 dark:border-white/10 text-center text-xs text-slate-500">
+            Nothing logged yet. Write whatever choice is on your mind above to start thinking it through.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 dark:divide-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111827] overflow-hidden">
+            {decisions.map((decision) => (
+              <div
+                key={decision.id}
+                onClick={() => navigate(`/app/decisions/${decision.id}`)}
+                className="group p-4 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors"
               >
-                + Add Goal
-              </Link>
-            </div>
+                <div className="space-y-0.5 min-w-0">
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate group-hover:text-brand-600 dark:group-hover:text-cyan-400 transition-colors">
+                    {decision.title}
+                  </h3>
+                  {decision.description && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-lg">
+                      {decision.description}
+                    </p>
+                  )}
+                </div>
 
-            {activeGoals.length === 0 ? (
-              <p className="text-xs text-slate-500 italic py-2">
-                No active goals added yet. Add goals in Personal Space so Decisionly can align your decisions with what matters to you.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {activeGoals.slice(0, 4).map((goal) => (
-                  <div
-                    key={goal.id}
-                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-white/5 space-y-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                        {goal.title}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 line-clamp-1">{goal.content}</p>
-                  </div>
-                ))}
+                <div className="flex items-center gap-2 text-slate-400 shrink-0">
+                  <span className="text-[11px] hidden sm:inline">
+                    {new Date(decision.updated_at).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </div>
-            )}
-          </Card>
-
-          {/* Privacy Guarantee Card */}
-          <Card className="p-4 border-slate-200 dark:border-white/10 bg-brand-500/5 dark:bg-brand-950/20 space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Privacy & AI Ethics Pledge
-            </h4>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-              Your decisions and personal context belong solely to you. We calculate scores deterministically and transmit only user-approved context to Groq for grounded language synthesis.
-            </p>
-          </Card>
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

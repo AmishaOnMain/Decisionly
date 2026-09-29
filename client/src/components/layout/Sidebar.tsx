@@ -37,25 +37,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
             <Compass className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-slate-900 to-brand-600 dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="text-base font-semibold tracking-tight text-slate-900 dark:text-white">
               Decisionly
             </h1>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium -mt-0.5">
-              Decision Intelligence
+            <p className="text-[11px] text-slate-400 font-normal">
+              A quiet space to think
             </p>
           </div>
         </div>
 
-        {/* Action: New Decision */}
+        {/* Action: New Thought */}
         <button
           onClick={() => {
-            navigate('/app/decisions/new');
+            navigate('/app');
             if (onItemClick) onItemClick();
           }}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 shadow-md shadow-brand-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium text-xs text-white bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 transition-all duration-150"
         >
-          <PlusCircle className="w-4 h-4" />
-          <span>New Decision</span>
+          <PlusCircle className="w-3.5 h-3.5" />
+          <span>What's on your mind?</span>
         </button>
 
         {/* Navigation list */}

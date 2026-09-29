@@ -24,9 +24,18 @@ export const AIFinalVerdictSchema = z.object({
   nextAction: z.string(),
 });
 
+export const AIConversationalSectionSchema = z.object({
+  whatImHearing: z.string(),
+  thinkingTogether: z.string(),
+  questionsToPonder: z.array(z.string()),
+  priorityPills: z.array(z.string()),
+  honestVerdict: z.string(),
+});
+
 export const AIAnalysisResponseSchema = z.object({
   summary: z.string(),
   finalVerdict: AIFinalVerdictSchema.optional(),
+  conversational: AIConversationalSectionSchema.optional(),
   alternativeInsights: z.array(AIAlternativeInsightSchema),
   tradeOffs: z.array(z.string()),
   risks: z.array(AIRiskItemSchema),

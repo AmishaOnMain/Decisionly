@@ -1,29 +1,8 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  Sparkles,
-  ShieldCheck,
-  Scale,
-  Sliders,
-  CheckCircle2,
-  Lock,
-  Compass,
-  ArrowRight,
-  Briefcase,
-  DollarSign,
-  HeartPulse,
-  Plane,
-  Target,
-  Home,
-  Users,
-  GraduationCap,
-  Layers,
-} from 'lucide-react';
+import { Compass, ArrowRight, Shield, Heart, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/Button.js';
-import { Card } from '../components/ui/Card.js';
-import { Badge } from '../components/ui/Badge.js';
-import { Navbar } from '../components/layout/Navbar.js';
-import { TARGET_CATEGORIES, CATEGORY_DETAILS } from '@shared/constants/categories.js';
+import { ThemeToggle } from '../components/layout/ThemeToggle.js';
 import { useAuth } from '../context/AuthContext.js';
 
 export const LandingPage: React.FC = () => {
@@ -34,59 +13,79 @@ export const LandingPage: React.FC = () => {
     try {
       await demoLogin();
       navigate('/app');
-    } catch (err: any) {
+    } catch {
       navigate('/auth/sign-in');
     }
   };
 
-  const categoryIcons: Record<string, any> = {
-    Career: Briefcase,
-    Finance: DollarSign,
-    'Health and Fitness': HeartPulse,
-    Travel: Plane,
-    'Personal Development': Target,
-    Lifestyle: Home,
-    Relationships: Users,
-    Education: GraduationCap,
-    Custom: Layers,
-  };
-
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      <Navbar />
-
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28">
-        {/* Ambient background glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-brand-600/20 via-indigo-500/20 to-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-xs font-semibold text-brand-600 dark:text-brand-300">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI-Powered Personal Decision Intelligence</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
-            Your Life. Your Context.{' '}
-            <span className="bg-gradient-to-r from-brand-600 via-indigo-500 to-cyan-500 dark:from-brand-400 dark:via-indigo-300 dark:to-cyan-300 bg-clip-text text-transparent">
-              Your Decisions.
+    <div className="min-h-screen flex flex-col bg-white dark:bg-[#0c1017] text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      {/* Quiet Top Navigation */}
+      <header className="w-full border-b border-slate-100 dark:border-white/5 py-4 px-6 sm:px-10">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 shadow-sm">
+              <Compass className="w-4 h-4" />
+            </div>
+            <span className="font-semibold text-base tracking-tight text-slate-900 dark:text-white">
+              Decisionly
             </span>
+          </Link>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            {user ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/app')}
+                icon={<ArrowRight className="w-4 h-4" />}
+              >
+                Go to Dashboard
+              </Button>
+            ) : (
+              <>
+                <Link
+                  to="/auth/sign-in"
+                  className="text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white px-2.5 py-1.5 transition-colors"
+                >
+                  Log In
+                </Link>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate('/auth/sign-up')}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Calm Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-16 sm:py-24 text-center">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+            A quiet place to think through what's on your mind.
           </h1>
 
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-            Turn complex personal and professional crossroads into transparent, grounded comparisons.
-            Powered by deterministic weighted scoring, verified personal context, and AI language synthesis.
+          <p className="text-base sm:text-lg text-slate-500 dark:text-slate-400 font-normal leading-relaxed max-w-xl mx-auto">
+            When a life choice feels tangled or overwhelming, talk it through here.
+            No noisy dashboards, no robotic formulas—just honest, calm clarity to help you find your next step.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
             {user ? (
               <Button
                 variant="primary"
                 size="lg"
                 onClick={() => navigate('/app')}
-                icon={<ArrowRight className="w-5 h-5" />}
+                icon={<ArrowRight className="w-4 h-4" />}
+                className="px-6 py-3 text-sm font-medium rounded-xl"
               >
-                Go to Your Dashboard
+                Go to Dashboard
               </Button>
             ) : (
               <>
@@ -94,150 +93,70 @@ export const LandingPage: React.FC = () => {
                   variant="primary"
                   size="lg"
                   onClick={() => navigate('/auth/sign-up')}
-                  icon={<ArrowRight className="w-5 h-5" />}
+                  icon={<ArrowRight className="w-4 h-4" />}
+                  className="px-6 py-3 text-sm font-medium rounded-xl w-full sm:w-auto"
                 >
-                  Get Started Free
+                  Start Thinking It Through
                 </Button>
+
                 <Button
                   variant="secondary"
                   size="lg"
                   onClick={handleDemo}
-                  icon={<Sparkles className="w-4 h-4 text-brand-500" />}
+                  className="px-5 py-3 text-sm font-medium rounded-xl w-full sm:w-auto"
                 >
-                  Try Interactive Demo
+                  Explore Demo
                 </Button>
               </>
             )}
           </div>
-
-          {/* Value Highlights */}
-          <div className="pt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>Deterministic Math Engine</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-brand-500" />
-              <span>100% User-Controlled Context</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Lock className="w-4 h-4 text-cyan-500" />
-              <span>Zero Model Training on Private Data</span>
-            </div>
-          </div>
         </div>
-      </section>
 
-      {/* 9 Supported Domains Showcase */}
-      <section className="py-16 bg-white/50 dark:bg-[#111827]/40 border-y border-slate-200/80 dark:border-white/5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-          <div className="text-center space-y-2 max-w-2xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Structured Guidance for Every Major Life Domain
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Select predefined domains with tailored safeguards or create your own custom framework.
+        {/* Example Prompt Showcase */}
+        <div className="mt-14 max-w-xl w-full mx-auto p-5 sm:p-6 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/10 text-left space-y-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+            What people bring here
+          </span>
+          <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+            "I'm thinking about taking admission in a private college, but most of the good ones are far from me. I'm not sure if travelling that far is worth it."
+          </p>
+        </div>
+      </main>
+
+      {/* Supporting Quiet Notes at Bottom */}
+      <footer className="border-t border-slate-100 dark:border-white/5 py-10 px-6 sm:px-10">
+        <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-6 text-center sm:text-left text-xs text-slate-500 dark:text-slate-400">
+          <div className="space-y-1">
+            <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-slate-400" /> Private & Personal
+            </h4>
+            <p className="text-[11px] leading-relaxed">
+              Your thoughts, memories, and dilemmas are strictly yours. Never sold or shared.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {TARGET_CATEGORIES.map((catKey) => {
-              const details = CATEGORY_DETAILS[catKey];
-              const IconComp = categoryIcons[catKey] || Layers;
-
-              return (
-                <Card
-                  key={catKey}
-                  className="p-5 border-slate-200 dark:border-white/10 hover:border-brand-500/30 transition-all glow-card"
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
-                      <IconComp className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                        {details.name}
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                        {details.description}
-                      </p>
-                      {details.guidance && (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400/90 pt-1">
-                          🛡️ {details.guidance}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Core Principles Section */}
-      <section className="py-20">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              Why Decisionly is Different
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              AI should inform your judgment—not replace it, manipulate it, or fabricate certainty.
+          <div className="space-y-1">
+            <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-1.5">
+              <Heart className="w-3.5 h-3.5 text-slate-400" /> Like a Thoughtful Friend
+            </h4>
+            <p className="text-[11px] leading-relaxed">
+              A gentle sounding board that listens to what actually matters to your everyday life.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6 border-slate-200 dark:border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
-                <Scale className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Transparent Math Engine
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Scoring is never hallucinated by an LLM. We use deterministic Multi-Attribute Utility Theory (MAUT) with normalized weights and explicit missing-value handling.
-              </p>
-            </Card>
-
-            <Card className="p-6 border-slate-200 dark:border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                Explicit Context Consent
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                You maintain a private Personal Space of goals and constraints. For each decision, you inspect and explicitly approve which items may be processed.
-              </p>
-            </Card>
-
-            <Card className="p-6 border-slate-200 dark:border-white/10 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
-                <Sliders className="w-5 h-5" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                What-If Scenario Sandbox
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Test how sensitive your choices are to changing priorities or cost factors. See instant recalculations without affecting your saved baseline.
-              </p>
-            </Card>
+          <div className="space-y-1">
+            <h4 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-center sm:justify-start gap-1.5">
+              <Compass className="w-3.5 h-3.5 text-slate-400" /> Always Your Call
+            </h4>
+            <p className="text-[11px] leading-relaxed">
+              No pressure and no automated orders. You stay in the driver's seat.
+            </p>
           </div>
         </div>
-      </section>
 
-      {/* CTA Footer */}
-      <footer className="mt-auto border-t border-slate-200 dark:border-white/10 bg-white/60 dark:bg-[#090d16] py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-brand-600" />
-            <span className="font-bold text-slate-900 dark:text-white">Decisionly</span>
-            <span>— Your Life. Your Context. Your Decisions.</span>
-          </div>
-          <div>
-            Built with privacy, deterministic transparency, and Groq Decision Intelligence.
-          </div>
+        <div className="max-w-4xl mx-auto mt-8 pt-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+          <span>Decisionly</span>
+          <span>A quiet space to think clearly.</span>
         </div>
       </footer>
     </div>

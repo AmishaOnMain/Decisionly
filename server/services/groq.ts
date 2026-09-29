@@ -27,7 +27,17 @@ if (config.GROQ_API_KEY && config.GROQ_API_KEY.startsWith('gsk_')) {
   }
 }
 
-const SYSTEM_PROMPT = `You are Decisionly, a careful decision-support assistant. Help the user understand options; never make the decision for them. Use only the decision details, alternatives, deterministic calculations, and personal context explicitly approved for this analysis. Do not invent facts, preferences, constraints, or outcomes. Separate user-provided facts from assumptions, inferences, and unknowns. If information is missing or incomparable, say so and explain what could help. Describe benefits, drawbacks, risks, trade-offs, and how options relate to the user’s stated goals. Treat scores as conditional on the user’s criteria, weights, and input values, not as objective truth or certainty. Avoid coercive, overconfident, or definitive instructions. For health, finance, legal, or other high-impact topics, provide general decision organization only and recommend qualified professional advice where appropriate. Return only valid JSON matching the required response schema.`;
+const SYSTEM_PROMPT = `You are Decisionly, a thoughtful, empathetic, and smart friend who helps the user think through difficult personal and life choices.
+Follow this fundamental UX principle:
+Listen → Understand → Ask → Think together → Suggest (NOT Input → Analyse → Score → Rank → Output).
+
+Guidelines:
+1. Speak warmly, plainly, and realistically like a trusted human friend, not like a corporate consulting firm, algorithm, or mathematical evaluator.
+2. Never say "Our analysis indicates..." or "Alternative A has a higher utility score". Instead say "From what you've told me so far..." or "Honestly, what seems to be bothering you the most is...".
+3. Reflect back what you're hearing in simple human terms. Empathize with the real emotional, financial, or daily life friction (like travel fatigue, stress, uncertainty).
+4. Ask 2-3 genuine, practical questions that help the user clarify what really matters to them.
+5. Provide a clear, honest suggestion/verdict so they feel helped and guided, while remembering they hold the final choice.
+6. Return only valid JSON matching the schema.`;
 
 export const groqService = {
   isConfigured(): boolean {
@@ -105,10 +115,16 @@ export const groqService = {
               { role: 'system', content: SYSTEM_PROMPT },
               {
                 role: 'user',
-                content: `Perform a structured decision intelligence analysis on the following approved data.
-Crucial directive: Provide a decisive, clear final verdict so the user is NOT confused by excess raw data.
+                content: `You are helping a friend think through this decision. Listen, understand, ask, think together, and suggest.
 Return ONLY a valid JSON object matching the schema with fields:
 - summary (string: concise executive overview)
+- conversational: {
+    whatImHearing: string (e.g. "Okay, I get what's bothering you. You seem interested in... but the problem is..."),
+    thinkingTogether: string (e.g. "If I were helping you think this through as a friend, I'd look at how much this affects your everyday life..."),
+    questionsToPonder: array of 2-3 strings (e.g. ["How far are you willing to travel every day?", "Is there something about these colleges that makes the extra travel worth it to you?"]),
+    priorityPills: array of 4-6 strings representing key values/factors (e.g. ["College opportunities", "Distance", "Cost", "Family", "Comfort", "I'm not sure yet"]),
+    honestVerdict: string (e.g. "Honestly, the distance seems to be the part that's bothering you the most. If the college isn't giving you something significantly better, travelling that far every day could become exhausting.")
+  }
 - finalVerdict: {
     recommendedAlternativeId: string (exact alternativeId of the best choice),
     verdictTitle: string (e.g. "Choose [Alternative Name]"),
@@ -362,9 +378,33 @@ function generateLocalDeterministicAnalysis(
     nextAction: `Formally commit to "${bestChoiceName}" as your primary strategy and schedule an initial milestone review.`,
   };
 
+  const conversational = {
+    whatImHearing: decision.description
+      ? `Okay, I get what's on your mind. You're weighing "${decision.title}" because: "${decision.description}".`
+      : `Okay, I hear what you're working through with "${decision.title}". You're trying to figure out which direction serves your everyday life best.`,
+    thinkingTogether: `If I were helping you think this through as a friend, I'd look at how each option actually impacts your daily energy, peace of mind, expenses, and long-term satisfaction—not just what sounds good on paper.`,
+    questionsToPonder: [
+      `What is the one factor here that, if it goes wrong, would cause you the most regret?`,
+      `How much does your everyday comfort and peace of mind compare to potential future upside?`,
+      `If you had to make this call right now without overthinking, which option feels right in your gut?`,
+    ],
+    priorityPills: [
+      'Growth & Opportunities',
+      'Peace of Mind & Comfort',
+      'Daily Distance & Time',
+      'Cost & Financial Freedom',
+      'Family & Relationships',
+      "I'm not sure yet",
+    ],
+    honestVerdict: topOption?.totalScore
+      ? `Honestly, from what you've shared so far, "${bestChoiceName}" feels like your strongest move. It gives you the best balance where it matters most, as long as you're okay with ${tradeOffs[0] ? tradeOffs[0].toLowerCase() : 'the primary trade-off'}.`
+      : `Honestly, "${bestChoiceName}" seems to fit your situation best right now. Take a deep breath and trust your instincts.`,
+  };
+
   return {
     summary,
     finalVerdict,
+    conversational,
     alternativeInsights,
     tradeOffs,
     risks,

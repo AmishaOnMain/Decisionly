@@ -152,9 +152,18 @@ export interface AIFinalVerdict {
   nextAction: string;
 }
 
+export interface AIConversationalSection {
+  whatImHearing: string;
+  thinkingTogether: string;
+  questionsToPonder: string[];
+  priorityPills: string[];
+  honestVerdict: string;
+}
+
 export interface AIAnalysisResponse {
   summary: string;
   finalVerdict?: AIFinalVerdict;
+  conversational?: AIConversationalSection;
   alternativeInsights: AIAlternativeInsight[];
   tradeOffs: string[];
   risks: AIRiskItem[];
